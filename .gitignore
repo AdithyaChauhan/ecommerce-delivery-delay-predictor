@@ -1,0 +1,58 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Raw and processed data
+data/**
+!data/.gitkeep
+*.csv
+*.parquet
+*.feather
+*.arrow
+
+# Models and generated artifacts
+artifacts/
+models/
+reports/generated/
+*.joblib
+*.pkl
+*.pickle
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# JavaScript and frontend build output
+node_modules/
+dist/
+build/
+.next/
+coverage/
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
+temp/
+
+# Infrastructure local state
+.terraform/
+*.tfstate
+*.tfstate.*
+.aws-sam/
