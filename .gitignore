@@ -7,7 +7,6 @@
 
 # Raw and processed data
 data/**
-!data/.gitkeep
 *.csv
 *.parquet
 *.feather
