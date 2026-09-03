@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The orders-CSV inspection milestone is complete. Nine source CSV files exist under the ignored `data/raw/` directory, but only `olist_orders_dataset.csv` has been content-inspected. No application code, processed dataset, or model has been created.
+The orders- and customers-file inspections and their `customer_id` relationship check are complete. Two of the nine source CSV files have been content-inspected. No application code, processed dataset, joined dataset, or model has been created.
 
 ## Locked architecture
 
@@ -33,11 +33,19 @@ Development and validation will happen locally before cloud services are introdu
 - Verified that `.gitignore` is located inside the repository root.
 - Created the initial Git commit, `4d04780` (`chore: initialize project documentation`).
 - Verified that nine source CSV files exist under the ignored `data/raw/` directory.
-- Content-inspected only `olist_orders_dataset.csv`; the other source CSV contents remain uninspected.
+- Content-inspected `olist_orders_dataset.csv` and `olist_customers_dataset.csv`; the other seven source CSV contents remain uninspected.
 - Verified 99,441 rows and 99,441 unique `order_id` values, with no duplicate `order_id` values, malformed rows, or unparseable timestamps.
 - Verified an eligible training cohort of 96,470 delivered orders with valid actual and estimated delivery dates.
 - Verified 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%) in the eligible cohort.
 - Verified that eight delivered orders lack an actual delivery date, six non-delivered orders contain an actual delivery date, and fourteen eligible orders lack `order_approved_at`.
+- Verified that the customers file contains 99,441 well-formed rows and no missing values.
+- Verified that `customer_id` is unique in both the orders and customers files.
+- Every order joins to exactly one customer record through `customer_id`. The verified join contains 99,441 rows, with no lost or multiplied orders.
+- Verified 96,096 distinct `customer_unique_id` values: 93,099 are linked to one order and 2,997 are linked to multiple orders.
+- Verified that the 2,997 multi-order customers account for 6,342 orders, with a maximum of 17 orders linked to one `customer_unique_id`.
+- Verified 14,994 distinct `customer_zip_code_prefix` values, and every ZIP-prefix row value contains exactly five digits.
+- Verified that 23,995 ZIP-prefix row values begin with zero, so `customer_zip_code_prefix` must be stored as a string.
+- Verified 4,119 distinct `customer_city` values and 27 distinct `customer_state` values.
 
 ## In progress
 
@@ -45,7 +53,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Inspect only `data/raw/olist_customers_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.
+Inspect only `data/raw/olist_order_items_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.
 
 ## Verified decisions
 
@@ -53,11 +61,12 @@ Inspect only `data/raw/olist_customers_dataset.csv`, beginning with its header a
 - Train only on orders with `order_status` equal to `delivered` and valid actual and estimated delivery dates.
 - Exclude reviews and post-approval events from model inputs.
 - Use only information available at order approval time.
+- Do not use customer identifiers as direct model features.
 - Use a time-based train/test split.
 - Save preprocessing and the eventual model together as one pipeline.
 - Raw datasets, credentials, and `.env` files must not be committed.
 - Keep SHAP explanations optional until the core system works.
-- Inspect source CSV files one at a time; the next inspection is limited to the header and first three rows of `data/raw/olist_customers_dataset.csv`.
+- Inspect source CSV files one at a time; the next inspection is limited to the header and first three rows of `data/raw/olist_order_items_dataset.csv`.
 
 ## Verified commands and tests
 
@@ -74,15 +83,18 @@ Inspect only `data/raw/olist_customers_dataset.csv`, beginning with its header a
 - `$csvFiles = Get-ChildItem -LiteralPath 'data/raw' -File -Filter '*.csv'; Write-Output ('CSV_COUNT=' + $csvFiles.Count)` returned `CSV_COUNT=9` without reading CSV contents.
 - Python standard-library scans executed through `$analysisCode | python -` inspected only `data/raw/olist_orders_dataset.csv` and produced the verified structural and target results recorded above.
 - `git status --short --branch` returned `## main` after the orders-file inspection.
+- A Python standard-library scan executed through `$analysisCode | python -` inspected only `data/raw/olist_customers_dataset.csv` and produced the verified customer-file results recorded above.
+- A Python standard-library relationship check executed through `$analysisCode | python -` read only `customer_id` from the orders file and `customer_id` plus `customer_unique_id` from the customers file. It verified that every order joins to exactly one customer record and that the join contains 99,441 rows.
+- `git status --short --branch` returned `## main` after the customers-file inspection and relationship check.
 - No application tests exist yet.
 
 ## Known issues or blockers
 
-- The contents of the other eight source CSV files have not been inspected.
+- The contents of the other seven source CSV files have not been inspected.
 
 ## Results not yet available
 
-- Content profiles for the other eight source CSV files
+- Content profiles for the other seven source CSV files
 - Model metrics
 - API or interface test results
 - AWS, Snowflake, Docker, EKS, or CI deployment status
@@ -115,7 +127,7 @@ Last updated: 2026-09-03
 
 ### Current milestone
 
-The orders-file inspection is complete. The next milestone is to inspect only the header and first three rows of `data/raw/olist_customers_dataset.csv`.
+The orders- and customers-file inspections and their `customer_id` relationship check are complete. The next milestone is to inspect only the header and first three rows of `data/raw/olist_order_items_dataset.csv`.
 
 ### Completed and verified
 
@@ -123,25 +135,35 @@ The orders-file inspection is complete. The next milestone is to inspect only th
 - Change-control rules are present in `AGENTS.md`.
 - The initial project documentation is committed in `4d04780` (`chore: initialize project documentation`).
 - `.gitignore` no longer exempts `data/.gitkeep`; both `data/.gitkeep` and raw data paths are ignored.
-- Nine source CSV files exist under the ignored `data/raw/` directory, but only `olist_orders_dataset.csv` has been content-inspected.
+- Nine source CSV files exist under the ignored `data/raw/` directory. `olist_orders_dataset.csv` and `olist_customers_dataset.csv` have been content-inspected; the other seven source CSV contents remain uninspected.
 - The orders file contains 99,441 rows and 99,441 unique `order_id` values, with no duplicate `order_id` values, malformed rows, or unparseable timestamps.
 - The eligible training cohort contains 96,470 delivered orders with valid actual and estimated delivery dates.
 - `delay_flag = 1` when the actual delivered calendar date is later than the estimated calendar date; otherwise, `delay_flag = 0`.
 - The eligible cohort contains 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%).
 - Eight delivered orders lack an actual delivery date, six non-delivered orders contain an actual delivery date, and fourteen eligible orders lack `order_approved_at`.
-- No application code, processed dataset, or model has been created, and no application tests exist yet.
-- `git status --short --branch` returned `## main` after the orders-file inspection.
+- The customers file contains 99,441 well-formed rows and no missing values.
+- `customer_id` is unique in both files. Every order joins to exactly one customer record through `customer_id`, producing 99,441 joined rows with no lost or multiplied orders.
+- The verified join contains 96,096 distinct `customer_unique_id` values: 93,099 are linked to one order and 2,997 are linked to multiple orders.
+- The 2,997 multi-order customers account for 6,342 orders, and the maximum number of orders linked to one `customer_unique_id` is 17.
+- There are 14,994 distinct ZIP prefixes, and every ZIP-prefix row value contains exactly five digits.
+- There are 23,995 ZIP-prefix row values beginning with zero, so the ZIP prefix must be stored as a string.
+- There are 4,119 distinct cities and 27 distinct states.
+- Customer identifiers will not be direct model features.
+- No application code, processed dataset, joined dataset, or model has been created, and no application tests exist yet.
+- `git status --short --branch` returned `## main` after the customers-file inspection and relationship check.
 
 ### Files changed
 
 - `README.md`: updated the current status and refined the prediction contract.
-- `docs/PROJECT_STATUS.md`: recorded the completed orders-file inspection and refreshed this shareable handoff.
+- `docs/PROJECT_STATUS.md`: recorded the completed customers-file inspection and relationship check and refreshed this shareable handoff.
 
 ### Commands and tests that passed
 
 - `$csvFiles = Get-ChildItem -LiteralPath 'data/raw' -File -Filter '*.csv'; Write-Output ('CSV_COUNT=' + $csvFiles.Count)` returned `CSV_COUNT=9`.
 - Python standard-library scans executed through `$analysisCode | python -` inspected only the orders CSV and returned the verified structure and target results.
-- `git status --short --branch` returned `## main` after inspection.
+- A Python standard-library scan executed through `$analysisCode | python -` inspected only the customers CSV and returned the verified customer-file results.
+- A Python standard-library relationship check executed through `$analysisCode | python -` used only the required customer identifier columns from the orders and customers files and returned the verified relationship results.
+- `git status --short --branch` returned `## main` after the customers-file inspection and relationship check.
 
 ### Git verification
 
@@ -152,8 +174,8 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Blockers or uncertainties
 
-- The contents of the other eight source CSV files remain uninspected.
+- The contents of the other seven source CSV files remain uninspected.
 
 ### Next exact action
 
-Inspect only `data/raw/olist_customers_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.
+Inspect only `data/raw/olist_order_items_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.

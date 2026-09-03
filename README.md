@@ -4,11 +4,12 @@ This project will build an application for e-commerce operations teams that esti
 
 ## Current status
 
-- The orders-file inspection is complete.
-- Nine source CSV files exist under the ignored `data/raw/` directory, but only `olist_orders_dataset.csv` has been content-inspected.
+- The orders- and customers-file inspections and their `customer_id` relationship check are complete.
+- Two of the nine source CSV files have been content-inspected: `olist_orders_dataset.csv` and `olist_customers_dataset.csv`. The other seven source CSV contents remain uninspected.
 - The orders file contains 99,441 rows. The verified eligible training cohort contains 96,470 rows: 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%).
-- No application code, processed dataset, or model has been created.
-- The next exact action is to inspect only the header and first three rows of `data/raw/olist_customers_dataset.csv`.
+- The customers file contains 99,441 well-formed rows and no missing values. Every order joins to exactly one customer record through `customer_id`, producing 99,441 joined rows with no lost or multiplied orders.
+- No application code, processed dataset, joined dataset, or model has been created.
+- The next exact action is to inspect only the header and first three rows of `data/raw/olist_order_items_dataset.csv`.
 
 ## Prediction contract
 
@@ -16,6 +17,7 @@ This project will build an application for e-commerce operations teams that esti
 - Target: `delay_flag = 1` when the actual delivered calendar date is later than the estimated calendar date; otherwise, `delay_flag = 0`.
 - Training population: orders with `order_status` equal to `delivered` and valid actual and estimated delivery dates.
 - Feature rule: use only information available at prediction time.
+- Identifier rule: customer identifiers will not be direct model features.
 - Exclusions: reviews and all post-approval events.
 - Evaluation: use a time-based train/test split.
 
