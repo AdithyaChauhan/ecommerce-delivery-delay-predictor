@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-08-27
+Last updated: 2026-09-03
 
 ## Project goal
 
@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-Repository context scaffolding is complete. Data and application implementation have not started.
+The orders-CSV inspection milestone is complete. Nine source CSV files exist under the ignored `data/raw/` directory, but only `olist_orders_dataset.csv` has been content-inspected. No application code, processed dataset, or model has been created.
 
 ## Locked architecture
 
@@ -24,13 +24,20 @@ Development and validation will happen locally before cloud services are introdu
 
 - Selected the delivery-delay prediction problem.
 - Defined the prediction moment as immediately after order approval.
-- Defined the initial target and leakage restrictions.
+- Defined `delay_flag = 1` when the actual delivered calendar date is later than the estimated calendar date; otherwise, `delay_flag = 0`.
+- Defined the initial leakage restrictions.
 - Chose a time-based train/test split.
 - Initialized a local Git repository on the `main` branch.
 - Created the repository context and progress-tracking documents.
 - Created initial ignore rules for datasets, secrets, caches, build output, and generated artifacts.
 - Verified that `.gitignore` is located inside the repository root.
 - Created the initial Git commit, `4d04780` (`chore: initialize project documentation`).
+- Verified that nine source CSV files exist under the ignored `data/raw/` directory.
+- Content-inspected only `olist_orders_dataset.csv`; the other source CSV contents remain uninspected.
+- Verified 99,441 rows and 99,441 unique `order_id` values, with no duplicate `order_id` values, malformed rows, or unparseable timestamps.
+- Verified an eligible training cohort of 96,470 delivered orders with valid actual and estimated delivery dates.
+- Verified 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%) in the eligible cohort.
+- Verified that eight delivered orders lack an actual delivery date, six non-delivered orders contain an actual delivery date, and fourteen eligible orders lack `order_approved_at`.
 
 ## In progress
 
@@ -38,19 +45,19 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Obtain the Olist dataset, place it in the ignored local `data/raw/` directory, identify the orders CSV, and inspect only that file's columns, keys, data types, row count, and missing values without modifying it. Do not inspect the other source CSV files during this milestone.
+Inspect only `data/raw/olist_customers_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.
 
 ## Verified decisions
 
-- Target: the delivered calendar date is later than the estimated delivery calendar date.
-- Train only on delivered orders.
+- Target: `delay_flag = 1` when the actual delivered calendar date is later than the estimated calendar date; otherwise, `delay_flag = 0`.
+- Train only on orders with `order_status` equal to `delivered` and valid actual and estimated delivery dates.
 - Exclude reviews and post-approval events from model inputs.
 - Use only information available at order approval time.
 - Use a time-based train/test split.
 - Save preprocessing and the eventual model together as one pipeline.
 - Raw datasets, credentials, and `.env` files must not be committed.
 - Keep SHAP explanations optional until the core system works.
-- Limit the first data-inspection milestone to the orders CSV; do not inspect all source files together.
+- Inspect source CSV files one at a time; the next inspection is limited to the header and first three rows of `data/raw/olist_customers_dataset.csv`.
 
 ## Verified commands and tests
 
@@ -64,18 +71,18 @@ Obtain the Olist dataset, place it in the ignored local `data/raw/` directory, i
 - `git status --short --branch` reported a clean working tree on `main` before the current approved status and ignore-rule edits.
 - `git check-ignore -v --no-index data/.gitkeep data/raw/orders.csv .env models/model.joblib` confirmed that `data/.gitkeep`, raw data, environment secrets, and model artifacts are ignored.
 - `git diff --check` passed after the current approved edits.
+- `$csvFiles = Get-ChildItem -LiteralPath 'data/raw' -File -Filter '*.csv'; Write-Output ('CSV_COUNT=' + $csvFiles.Count)` returned `CSV_COUNT=9` without reading CSV contents.
+- Python standard-library scans executed through `$analysisCode | python -` inspected only `data/raw/olist_orders_dataset.csv` and produced the verified structural and target results recorded above.
+- `git status --short --branch` returned `## main` after the orders-file inspection.
 - No application tests exist yet.
 
 ## Known issues or blockers
 
-- The dataset has not been obtained or inspected.
-- The exact number and names of source CSV files are not yet verified in this repository.
+- The contents of the other eight source CSV files have not been inspected.
 
 ## Results not yet available
 
-- Source file count and names
-- Row counts, keys, data types, and missing-value profile
-- Delayed-order percentage
+- Content profiles for the other eight source CSV files
 - Model metrics
 - API or interface test results
 - AWS, Snowflake, Docker, EKS, or CI deployment status
@@ -104,11 +111,11 @@ as stronger evidence than documentation or chat history.
 
 ## Shareable handoff
 
-Last updated: 2026-08-27
+Last updated: 2026-09-03
 
 ### Current milestone
 
-Obtain the Olist dataset and inspect only its orders CSV without modifying it or inspecting the other source CSV files.
+The orders-file inspection is complete. The next milestone is to inspect only the header and first three rows of `data/raw/olist_customers_dataset.csv`.
 
 ### Completed and verified
 
@@ -116,18 +123,25 @@ Obtain the Olist dataset and inspect only its orders CSV without modifying it or
 - Change-control rules are present in `AGENTS.md`.
 - The initial project documentation is committed in `4d04780` (`chore: initialize project documentation`).
 - `.gitignore` no longer exempts `data/.gitkeep`; both `data/.gitkeep` and raw data paths are ignored.
-- Data and application implementation have not started, and no application tests exist yet.
+- Nine source CSV files exist under the ignored `data/raw/` directory, but only `olist_orders_dataset.csv` has been content-inspected.
+- The orders file contains 99,441 rows and 99,441 unique `order_id` values, with no duplicate `order_id` values, malformed rows, or unparseable timestamps.
+- The eligible training cohort contains 96,470 delivered orders with valid actual and estimated delivery dates.
+- `delay_flag = 1` when the actual delivered calendar date is later than the estimated calendar date; otherwise, `delay_flag = 0`.
+- The eligible cohort contains 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%).
+- Eight delivered orders lack an actual delivery date, six non-delivered orders contain an actual delivery date, and fourteen eligible orders lack `order_approved_at`.
+- No application code, processed dataset, or model has been created, and no application tests exist yet.
+- `git status --short --branch` returned `## main` after the orders-file inspection.
 
 ### Files changed
 
-- `.gitignore`: removed the obsolete `data/.gitkeep` exception.
-- `docs/PROJECT_STATUS.md`: corrected the Git evidence and added this shareable handoff.
+- `README.md`: updated the current status and refined the prediction contract.
+- `docs/PROJECT_STATUS.md`: recorded the completed orders-file inspection and refreshed this shareable handoff.
 
 ### Commands and tests that passed
 
-- `git log -1 --oneline --decorate`
-- `git check-ignore -v --no-index data/.gitkeep data/raw/orders.csv .env models/model.joblib`
-- `git diff --check`
+- `$csvFiles = Get-ChildItem -LiteralPath 'data/raw' -File -Filter '*.csv'; Write-Output ('CSV_COUNT=' + $csvFiles.Count)` returned `CSV_COUNT=9`.
+- Python standard-library scans executed through `$analysisCode | python -` inspected only the orders CSV and returned the verified structure and target results.
+- `git status --short --branch` returned `## main` after inspection.
 
 ### Git verification
 
@@ -138,9 +152,8 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Blockers or uncertainties
 
-- The dataset has not been obtained or inspected.
-- The exact number and names of source CSV files are not yet verified in this repository.
+- The contents of the other eight source CSV files remain uninspected.
 
 ### Next exact action
 
-Obtain the Olist dataset, place it in the ignored local `data/raw/` directory, identify the orders CSV, and inspect only that file's columns, keys, data types, row count, and missing values without modifying it. Do not inspect the other source CSV files during this milestone.
+Inspect only `data/raw/olist_customers_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.
