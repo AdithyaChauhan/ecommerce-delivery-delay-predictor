@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. A reproducible local DummyClassifier baseline and XGBoost model are now trained and verified with a chronological split. No API, frontend, cloud resource, or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. Further model tuning is complete for the MVP. No API, frontend, cloud resource, or deployment exists.
 
 ## Locked architecture
 
@@ -82,14 +82,22 @@ Development and validation will happen locally before cloud services are introdu
 - Corrected order-level mean seller-distance distribution: minimum 0.0 km, median 433.921922 km, 95th percentile 2,095.116701599999 km, 99th percentile 2,482.5390120800002 km, and maximum 3,398.552914 km.
 - The national envelope removes coordinates outside Brazil, including the verified Spain-like coordinate for ZIP `83252`. It does not prove that every remaining coordinate is correctly located; plausible but incorrectly located in-country coordinates may remain.
 - Added `delivery_delay/train.py` with the existing `MODEL_FEATURE_COLUMNS` whitelist, deterministic chronological 70%/15%/15% splitting, training-only preprocessing, DummyClassifier baseline, fixed-seed XGBoost, training-only class weighting, validation-only threshold selection, and one final test evaluation.
-- Added `tests/test_train.py` with 5 synthetic tests covering split ordering and disjointness, feature and leakage contracts, missing and unknown categorical preprocessing, threshold selection, metrics, and artifact round-tripping.
+- Added `tests/test_train.py` with baseline and Model-v2 synthetic tests covering split ordering and disjointness, feature and leakage contracts, separate preprocessing, threshold and ranking selection, metrics, and artifact round-tripping.
 - Added direct training dependencies pinned in `requirements.txt`: scikit-learn 1.8.0, xgboost 3.1.2, and joblib 1.5.2.
-- Verified complete tests with `.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`: 20 passed with one NumPy/joblib deprecation warning.
+- Verified focused Model-v2 tests with `.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider tests/test_train.py`: 9 passed. Verified the complete suite with `.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`: 24 passed with dependency deprecation warnings.
 - Trained the exact saved model with `.venv\\Scripts\\python.exe -m delivery_delay.train --gold data/processed/gold_v1.parquet --artifacts-dir models` using random seed 42 and training `scale_pos_weight` 11.765406427221173.
 - The training split contains 67,529 rows (62,239 on time, 5,290 late; 92.166329%/7.833671%) from `2016-09-15 12:16:38` through `2018-04-15 20:12:35`; validation contains 14,470 rows (13,846/624; 95.687630%/4.312370%) through `2018-06-21 08:29:29`; test contains 14,471 rows (13,851/620; 95.715569%/4.284431%) through `2018-08-29 15:00:37`.
 - The selected validation F1 threshold is 0.5614128112792969. Test metrics are ROC-AUC 0.5849283037675166, average precision 0.0652516226594603, precision 0.06823104693140794, recall 0.30483870967741933, F1 0.11150442477876106, with TP 189, FP 2,581, TN 11,270, and FN 431.
 - The DummyClassifier test baseline has ROC-AUC 0.5, average precision 0.04284430930827172, precision 0.0, recall 0.0, F1 0.0, with TP 0, FP 0, TN 13,851, and FN 620.
 - Reloaded `models/delay_xgboost_pipeline.joblib` and produced five finite delay-risk scores in `[0, 1]`. Git confirmed both generated model files are ignored under `models/`.
+- Compared three models using validation average precision: XGBoost baseline (train ROC-AUC 0.836851, train average precision 0.343665; validation ROC-AUC 0.769436, validation average precision 0.139615), shallow regularized XGBoost (0.779737, 0.280977; 0.746226, 0.127092), and balanced LogisticRegression (0.746825, 0.227028; 0.741976, 0.113171). Validation average precision was the sole primary selection metric, with validation ROC-AUC and candidate name as tie-breakers; the existing XGBoost baseline won.
+- Selected the winner's validation threshold `0.5614128112792969`. Winner metrics were: train ROC-AUC 0.836851, average precision 0.343665, precision 0.250964, recall 0.664461, F1 0.364324; validation ROC-AUC 0.769436, average precision 0.139615, precision 0.154658, recall 0.399038, F1 0.222919; test ROC-AUC 0.584928, average precision 0.065252, precision 0.068231, recall 0.304839, F1 0.111504.
+- On the fixed chronological test period, top-5% selected 724 orders and found 63 late orders (8.701657% precision, 10.161290% recall, 2.030995x lift); top-10% selected 1,448 and found 108 (7.458564%, 17.419355%, 1.740853x); top-20% selected 2,895 and found 192 (6.632124%, 30.967742%, 1.547959x).
+- Reloaded the saved Model-v2 pipeline and generated 14,471 finite risk scores. Model outputs are risk scores, not calibrated probabilities.
+- The initial real Model-v2 run exhausted resources because fitted candidate pipelines were retained simultaneously. This was resolved by fitting and releasing candidates sequentially before fitting the locked winner.
+- Model-v2 artifacts are ignored under `models/` and will not be committed.
+- The fixed chronological test period was already observed during baseline development; it is not an untouched final holdout.
+- Further model tuning is complete for the MVP.
 
 ## In progress
 
@@ -97,7 +105,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Review the measured local baseline and XGBoost results before serving work begins.
+Define and implement the minimal FastAPI service with `GET /health` and `POST /predict`.
 
 ## Verified decisions
 
@@ -167,7 +175,7 @@ Review the measured local baseline and XGBoost results before serving work begin
 
 ## Results not yet available
 
-- Review of the local model metrics and decision threshold
+- FastAPI service implementation and endpoint tests
 - API or interface test results
 - AWS, Snowflake, Docker, EKS, or CI deployment status
 - Cloud cost
@@ -199,7 +207,7 @@ Last updated: 2026-09-04
 
 ### Current milestone
 
-The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. The national-envelope correction and rebuilt ignored output passed the locked cohort checks. The next milestone is to approve the corrected dataset contract before training.
+The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. The Model-v2 comparison and validation-selected baseline are complete, with further model tuning closed for the MVP. The next milestone is the minimal FastAPI inference service.
 
 ### Completed and verified
 
@@ -249,10 +257,10 @@ The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. 
 
 ### Files changed
 
-- `delivery_delay/gold_v1.py`: added numeric-first coordinate filtering, the documented Brazil envelope, and geolocation rejection metrics.
-- `tests/test_gold_v1.py`: moved fixtures inside the envelope and added four rejection and order-preservation tests.
-- `README.md`: documented the verified envelope rule, counts, and limitation.
-- `docs/PROJECT_STATUS.md`: recorded the corrected implementation and rebuilt quality results and refreshed this handoff.
+- `delivery_delay/train.py`: implemented the bounded Model-v2 comparison, validation-only selection, winner-only test evaluation, ranking metrics, and ignored artifacts.
+- `tests/test_train.py`: added synthetic Model-v2 selection, preprocessing, ranking, and reload tests.
+- `README.md`: recorded the verified Model-v2 checkpoint and next FastAPI milestone.
+- `docs/PROJECT_STATUS.md`: recorded the complete Model-v2 experiment and refreshed this handoff.
 
 ### Commands and tests that passed
 
@@ -269,6 +277,11 @@ The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. 
 - `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider` passed all 15 synthetic tests in 3.78 seconds.
 - `.venv\Scripts\python.exe -m delivery_delay.gold_v1 --raw-dir data/raw --output data/processed/gold_v1.parquet` rebuilt the ignored Parquet successfully with every locked cohort count satisfied and the new geolocation-quality metrics reported.
 - The post-build in-memory Parquet reconciliation passed, confirming the locked cohort, target distribution, retained missing-payment order, corrected distance thresholds, and 8,623,905-byte output.
+- Focused Model-v2 tests passed 9 tests; the complete suite passed 24 tests. The saved Model-v2 pipeline reloaded and generated 14,471 valid risk scores.
+- The initial real Model-v2 run exhausted resources because fitted candidate pipelines were retained simultaneously; fitting and releasing candidates sequentially resolved the issue.
+- Model-v2 artifacts are ignored and will not be committed. Model outputs are risk scores, not calibrated probabilities.
+- The fixed chronological test period was already observed during baseline development and is not an untouched final holdout.
+- Further model tuning is complete for the MVP.
 
 ### Git verification
 
@@ -279,7 +292,7 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Blockers or uncertainties
 
-- No implementation blocker remains, but the corrected Gold-v1 contract requires approval before model training.
+- No implementation blocker remains; further model tuning is complete for the MVP.
 - One eligible order lacks payment data but is retained with explicit defaults and an indicator.
 - There are 265 orders without customer coordinates and 477 without an available seller distance after national-envelope filtering.
 - The maximum order-level mean seller distance is 3,398.552914 km. Plausible but incorrectly located in-country coordinates may remain.
@@ -288,4 +301,6 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Review the corrected Gold-v1 geolocation and distance summary and approve the dataset contract before model training begins.
+Define and implement the minimal FastAPI service with `GET /health` and `POST /predict`.
+
+Define and implement the minimal FastAPI service with `GET /health` and `POST /predict`.

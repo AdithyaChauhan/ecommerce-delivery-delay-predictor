@@ -8,10 +8,10 @@ This project will build an application for e-commerce operations teams that esti
 - The verified eligible cohort contains 96,470 orders: 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%).
 - The reproducible local Gold-v1 builder and 15 synthetic tests are implemented. Its ignored Parquet output contains exactly one row for each eligible order.
 - The verified Brazil coordinate envelope rejected 31 raw geolocation rows across 20 ZIP prefixes; four ZIP prefixes lost all coordinates, 265 orders lack customer coordinates, and 477 lack a seller-to-customer distance.
-- A reproducible local DummyClassifier baseline and XGBoost model have been trained against Gold-v1.
-- The saved XGBoost test results are ROC-AUC 0.584928, average precision 0.065252, precision 0.068231, recall 0.304839, and F1 0.111504.
+- Three models were compared using validation average precision: XGBoost baseline 0.139615, shallow regularized XGBoost 0.127092, and balanced LogisticRegression 0.113171. The existing XGBoost baseline was retained.
+- On the fixed, previously observed test period, the retained model scored ROC-AUC 0.584928 and average precision 0.065252. Its top 5% contains 63 late orders out of 724, with 8.701657% precision and 2.030995x lift over the 4.284431% test prevalence.
 - No API, frontend, cloud resource, or deployment exists.
-- The next milestone is to review the measured baseline and model results before serving work begins.
+- Further model tuning is outside the MVP. The next milestone is the minimal FastAPI inference service.
 
 ## Prediction contract
 
@@ -48,7 +48,7 @@ PowerShell activation alternative:
 .\.venv\Scripts\Activate.ps1
 ```
 
-The raw CSVs, generated Parquet output, and model artifacts remain local and ignored by Git. Training saves the exact evaluated preprocessing-plus-XGBoost pipeline to `models/delay_xgboost_pipeline.joblib` and its threshold, split evidence, package versions, and verified metrics to `models/delay_training_metrics.json`. Model outputs are delay-risk scores, not calibrated probabilities.
+The raw CSVs, generated Parquet output, and model artifacts remain local and ignored by Git. Training saves the exact evaluated preprocessing-plus-XGBoost pipeline to `models/delay_xgboost_pipeline.joblib`; Model-v2 comparison artifacts are also ignored. Model outputs are delay-risk scores, not calibrated probabilities. The fixed chronological test period was already observed during baseline development and is not an untouched final holdout.
 
 ## Planned architecture
 

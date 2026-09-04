@@ -11,12 +11,20 @@ from delivery_delay.gold_v1 import FORBIDDEN_FEATURE_COLUMNS, MODEL_FEATURE_COLU
 from delivery_delay.train import (
     ARTIFACT_FILENAME,
     METRICS_FILENAME,
+    V2_ARTIFACT_FILENAME,
+    V2_METRICS_FILENAME,
+    SHALLOW_XGBOOST_PARAMETERS,
+    LOGISTIC_PARAMETERS,
     build_preprocessor,
+    build_logistic_pipeline,
     calculate_metrics,
+    calculate_ranking_metrics,
     load_gold,
     select_threshold,
+    select_model_name,
     split_gold,
     train_and_evaluate,
+    train_and_evaluate_v2,
 )
 
 
@@ -82,11 +90,53 @@ def test_preprocessing_handles_missing_and_unknown_categories():
         transformed, "toarray") else transformed).all()
 
 
+def test_logistic_preprocessing_scales_numeric_and_handles_unknown_categories():
+    preprocessor = build_logistic_pipeline().named_steps["preprocessor"]
+    frame = make_gold()
+    transformed = preprocessor.fit_transform(frame[list(MODEL_FEATURE_COLUMNS)])
+    changed = frame[list(MODEL_FEATURE_COLUMNS)].copy()
+    changed["primary_payment_type"] = "unseen-payment"
+    changed_output = preprocessor.transform(changed)
+
+    assert transformed.shape == changed_output.shape
+    assert LOGISTIC_PARAMETERS["class_weight"] == "balanced"
+    assert np.isfinite(
+        transformed.toarray() if hasattr(transformed, "toarray") else transformed
+    ).all()
+
+
 def test_threshold_selection_is_deterministic_and_maximizes_f1():
     labels = np.array([0, 1, 1, 0])
     scores = np.array([0.1, 0.6, 0.8, 0.5])
 
     assert select_threshold(labels, scores) == 0.6
+
+
+def test_model_selection_uses_validation_ap_then_roc_auc_then_name():
+    metrics = {
+        "z_candidate": {
+            "validation": {"average_precision": 0.4, "roc_auc": 0.9}
+        },
+        "a_candidate": {
+            "validation": {"average_precision": 0.4, "roc_auc": 0.9}
+        },
+        "lower_ap": {
+            "validation": {"average_precision": 0.3, "roc_auc": 1.0}
+        },
+    }
+
+    assert select_model_name(metrics) == "a_candidate"
+
+
+def test_ranking_metrics_sort_score_descending_then_order_id():
+    result = calculate_ranking_metrics(
+        np.array(["b", "a", "c", "d"]),
+        np.array([1, 0, 1, 0]),
+        np.array([0.9, 0.9, 0.8, 0.1]),
+    )
+
+    assert result["top_5_percent"]["selected_count"] == 1
+    assert result["top_5_percent"]["late_orders_found"] == 0
 
 
 def test_metrics_and_artifacts_round_trip(tmp_path):
@@ -113,3 +163,40 @@ def test_metrics_and_artifacts_round_trip(tmp_path):
     }
     assert calculate_metrics(np.array([0, 1]), np.array([0.1, 0.9]), 0.5)[
         "f1"] == 1.0
+
+
+def test_model_v2_selects_from_validation_and_round_trips_winner(tmp_path):
+    gold_path = tmp_path / "gold.parquet"
+    artifacts = tmp_path / "models"
+    make_gold(60).to_parquet(gold_path)
+
+    report = train_and_evaluate_v2(gold_path, artifacts)
+    loaded_report = json.loads(
+        (artifacts / V2_METRICS_FILENAME).read_text(encoding="utf-8")
+    )
+    pipeline = joblib.load(artifacts / V2_ARTIFACT_FILENAME)
+
+    assert report == loaded_report
+    assert report["winner"] in {
+        "xgboost_baseline",
+        "xgboost_shallow_regularized",
+        "logistic_regression_balanced",
+    }
+    assert set(report["candidate_comparison"]) == {
+        "xgboost_baseline",
+        "xgboost_shallow_regularized",
+        "logistic_regression_balanced",
+    }
+    assert set(report["candidate_comparison"][report["winner"]]) == {
+        "train", "validation"
+    }
+    assert set(report["winner_metrics"]) == {"train", "validation", "test"}
+    assert set(report["test_ranking_metrics"]) == {
+        "top_5_percent", "top_10_percent", "top_20_percent"
+    }
+    predictions = pipeline.predict_proba(
+        make_gold(5)[list(MODEL_FEATURE_COLUMNS)]
+    )[:, 1]
+    assert predictions.shape == (5,)
+    assert np.isfinite(predictions).all()
+    assert SHALLOW_XGBOOST_PARAMETERS["max_depth"] == 2
