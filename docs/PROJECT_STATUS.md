@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-Raw-data discovery and the scoped relationship checks are complete for all nine source CSV files. The next milestone is the reproducible local Gold-v1 dataset builder. No application code, processed dataset, saved join, aggregation, model, API, or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The next milestone is to approve the corrected Gold-v1 contract before model training. No model, API, frontend, cloud resource, or deployment exists.
 
 ## Locked architecture
 
@@ -64,6 +64,23 @@ Development and validation will happen locally before cloud services are introdu
 - Verified 71 complete, unique category translations. Two used product categories lack translations, and no translation entry is unused.
 - Verified 99,224 well-formed review rows and a unique (`review_id`, `order_id`) composite key. Review-to-order coverage and detailed review profiling were intentionally not performed.
 - All reconciliation checks that were performed and reported passed. No unperformed relationship check is included in that conclusion.
+- Added `requirements.txt` with the approved pandas 3.0.5, PyArrow 25.0.1, and pytest 9.1.1 dependency pins.
+- Implemented `delivery_delay/gold_v1.py` as a functional pandas and argparse builder. It reads the eight approved source CSVs through an explicit filename map and never reads reviews or `archive.zip`.
+- Defined two metadata columns, an explicit 30-column model-feature whitelist, and `delay_flag` as the target. Runtime checks prevent identifiers, post-approval fields, reviews, `shipping_limit_date`, and the target from entering the feature whitelist.
+- Documented the assumption that prediction occurs immediately after payment approval, so payment type, value, and installments are available at prediction time.
+- Implemented validated one-to-one and many-to-one merges, order-level item and payment aggregation, a left payment join, and deterministic primary category, seller, and payment selection.
+- Implemented numeric coordinate parsing before geolocation filtering and deduplication. Coordinates outside global latitude or longitude ranges still fail validation.
+- Implemented an inclusive Brazil envelope of latitude `[-34.0, 6.0]` and longitude `[-74.0, -28.0]`, based on [IBGE's published Brazilian geographic extremes](https://brasilemsintese.ibge.gov.br/territorio/dados-geograficos.html) with a small practical margin and eastern allowance for offshore territory.
+- Geolocation observations outside that envelope are rejected before valid numeric (`geolocation_zip_code_prefix`, `geolocation_lat`, `geolocation_lng`) triples are deduplicated and coordinate-wise ZIP medians are calculated. ZIPs without remaining coordinates and affected orders are retained through left joins with missing geographic features.
+- Verified that 31 raw geolocation rows and 27 distinct coordinate triples fall outside the Brazil envelope. They involve 20 ZIP prefixes, and 4 ZIP prefixes have no valid coordinate afterward.
+- Implemented clamped Haversine distance and one distance per distinct order-seller pair, followed by order-level minimum, mean, and maximum aggregation.
+- Added 15 synthetic pytest tests covering target dates, aggregation grain, payment coverage, geolocation duplicate handling and envelope rejection, missing data, deterministic selections, leakage exclusions, relationship failures, Haversine behavior, and temporary Parquet writing.
+- Built `data/processed/gold_v1.parquet` with 96,470 rows and 96,470 unique `order_id` values: 6,534 late and 89,936 on time. The one eligible order without payment data remains present.
+- The rebuilt generated Parquet file is ignored by Git and is 8,623,905 bytes.
+- The corrected derived-feature quality summary found 14 missing `approval_delay_hours` values, 16 missing product-weight totals, 16 missing product-volume totals, and 477 missing values in each seller-distance aggregate. Every other final data column has no missing values.
+- The corrected quality summary found no negative approval delays and no negative promised-delivery windows. It found 265 orders without customer coordinates and 477 orders without an available seller-to-customer distance.
+- Corrected order-level mean seller-distance distribution: minimum 0.0 km, median 433.921922 km, 95th percentile 2,095.116701599999 km, 99th percentile 2,482.5390120800002 km, and maximum 3,398.552914 km.
+- The national envelope removes coordinates outside Brazil, including the verified Spain-like coordinate for ZIP `83252`. It does not prove that every remaining coordinate is correctly located; plausible but incorrectly located in-country coordinates may remain.
 
 ## In progress
 
@@ -71,7 +88,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Implement a reproducible local Gold-v1 dataset builder that constructs the verified eligible cohort, aggregates one-to-many sources safely, preserves coverage exceptions, excludes unavailable or leakage-prone fields, and validates one row per eligible order.
+Review the corrected Gold-v1 geolocation and distance summary, then approve the dataset contract before model training begins.
 
 ## Verified decisions
 
@@ -83,7 +100,13 @@ Implement a reproducible local Gold-v1 dataset builder that constructs the verif
 - Aggregate item rows to one row per order before joining the model-training table.
 - Use item-row count, distinct product count, distinct seller count, total price, and total freight as verified aggregation candidates.
 - Aggregate payment rows to one row per order and left-join them so the eligible order without a payment row is retained.
-- Aggregate geolocation to one documented, outlier-resistant representative coordinate per ZIP prefix before deriving order-level geographic features. Coordinate-wise medians are the planned default after explicit duplicate handling.
+- Treat payment type, value, and installments as available features because prediction occurs immediately after payment approval.
+- Parse latitude and longitude numerically before geographic filtering or duplicate removal. Continue treating coordinates outside global latitude and longitude ranges as structurally invalid.
+- Reject geolocation observations outside the inclusive Brazil envelope of latitude `[-34.0, 6.0]` and longitude `[-74.0, -28.0]`. The envelope is based on [IBGE's published Brazilian geographic extremes](https://brasilemsintese.ibge.gov.br/territorio/dados-geograficos.html), with a small practical margin and eastern allowance for offshore territory.
+- Deduplicate valid numeric (`geolocation_zip_code_prefix`, `geolocation_lat`, `geolocation_lng`) triples, then aggregate to coordinate-wise median latitude and longitude per ZIP prefix before deriving order-level geographic features. Textual city or state differences must not give a coordinate extra weight.
+- Preserve ZIPs without valid representative coordinates and their affected orders through left joins, with missing-coordinate and missing-distance indicators.
+- Do not claim that the national envelope catches every coordinate error. Plausible but incorrectly located in-country coordinates may remain.
+- Clamp the Haversine intermediate value to `[0, 1]` before applying square root and inverse sine.
 - Preserve raw `shipping_limit_date` values unchanged.
 - Treat `shipping_limit_date` as the seller's deadline for handing the order to the logistics partner.
 - Exclude `shipping_limit_date` from Gold-v1 because its availability at the exact prediction moment is not verified and the observed values contain anomalies.
@@ -91,6 +114,8 @@ Implement a reproducible local Gold-v1 dataset builder that constructs the verif
 - Save preprocessing and the eventual model together as one pipeline.
 - Raw datasets, credentials, and `.env` files must not be committed.
 - Keep SHAP explanations optional until the core system works.
+- Keep metadata, the model-feature whitelist, and the target explicitly separated in the Gold-v1 column contract.
+- Use only synthetic DataFrames or temporary files in tests; raw Olist data must not be required by tests or future CI.
 
 ## Verified commands and tests
 
@@ -116,19 +141,24 @@ Implement a reproducible local Gold-v1 dataset builder that constructs the verif
 - A combined Python standard-library audit executed through `$script | python -` inspected the remaining six source CSVs plus only the necessary relationship columns from orders, customers, and order items. The analysis exited successfully and produced the product, seller, payment, geolocation, translation, and review results recorded in `docs/DATA_AUDIT.md`.
 - All reconciliation checks performed and reported by the combined audit passed. Review-to-order coverage was intentionally not performed and is not included in that result.
 - `git status --short --branch` returned `## main...origin/main` after the combined read-only audit.
-- No application tests exist yet.
+- `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider` passed all 15 synthetic tests in 3.78 seconds.
+- `.venv\Scripts\python.exe -m delivery_delay.gold_v1 --raw-dir data/raw --output data/processed/gold_v1.parquet` completed successfully and verified 96,470 rows, 96,470 unique order IDs, 6,534 late rows, 89,936 on-time rows, and one eligible order without payment data. Its quality output reported the verified envelope-rejection and corrected distance counts.
+- An in-memory Parquet reconciliation verified the locked cohort again and confirmed 477 missing values in each distance aggregate, 130 orders with mean distance above 3,000 km, and no order with mean distance above 4,000 km.
 
 ## Known issues or blockers
 
-- No blocker prevents beginning the local Gold-v1 builder.
-- One eligible order has no payment row; payment aggregates must be left-joined so the order is retained.
-- Geolocation lacks 157 customer ZIP prefixes and 7 seller ZIP prefixes, contains exact duplicates, and has coordinate-outlier risk. Missing coverage must be preserved, and ZIP coordinates require robust aggregation.
+- No implementation blocker remains, but the corrected Gold-v1 contract still requires approval before model training.
+- One eligible order has no payment row; the builder retains it and sets explicit missing-payment defaults and an indicator.
+- There are 265 orders without customer coordinates and 477 without an available seller-to-customer distance after filtering.
+- The maximum order-level mean seller distance is 3,398.552914 km after rejecting coordinates outside the national envelope.
+- The national envelope removes coordinates outside Brazil but cannot identify every plausible-looking coordinate assigned to the wrong in-country location.
+- Product-weight and product-volume totals are missing for 16 orders, and approval delay is missing for 14 orders. Their indicators or source missingness remain available for preprocessing decisions.
 - Two used product categories lack English translations.
 - `shipping_limit_date` is the seller's logistics handoff deadline, but its availability at the exact prediction moment is not verified and its observed values contain anomalies. It is excluded from Gold-v1.
 
 ## Results not yet available
 
-- A built and validated Gold-v1 dataset
+- Approval of the Gold-v1 quality review and final feature contract
 - Model metrics
 - API or interface test results
 - AWS, Snowflake, Docker, EKS, or CI deployment status
@@ -161,7 +191,7 @@ Last updated: 2026-09-04
 
 ### Current milestone
 
-The raw-data audit and scoped relationship checks are complete for all nine source CSV files. The next milestone is the reproducible local Gold-v1 dataset builder.
+The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. The national-envelope correction and rebuilt ignored output passed the locked cohort checks. The next milestone is to approve the corrected dataset contract before training.
 
 ### Completed and verified
 
@@ -198,14 +228,23 @@ The raw-data audit and scoped relationship checks are complete for all nine sour
 - Geolocation contains 261,831 exact duplicate occurrences beyond the first, lacks 157 customer and 7 seller ZIP prefixes, and has coordinate-outlier risk. Gold-v1 requires a robust ZIP-level representative coordinate.
 - Two used product categories lack translations. Reviews are excluded, and review-to-order coverage was intentionally not audited.
 - All reconciliation checks that were performed and reported passed; this conclusion does not include relationships outside the audit scope.
-- No application code, processed dataset, saved join, aggregation, model, API, or deployment exists, and no application tests exist yet.
-- `git status --short --branch` returned `## main...origin/main` after the combined read-only audit.
+- The functional builder explicitly reads eight source CSVs and never reads reviews or `archive.zip`. It validates schemas, keys, relationships, one-row aggregation, the feature whitelist, and the final cohort before writing.
+- Payment type, value, and installments are accepted as features because prediction occurs immediately after payment approval.
+- Coordinates are parsed numerically and filtered through the inclusive Brazil envelope before valid ZIP/latitude/longitude triples are deduplicated. ZIP coordinates use coordinate-wise medians, and the Haversine calculation clamps its intermediate value to `[0, 1]`.
+- The envelope rejected 31 raw rows and 27 distinct coordinate triples involving 20 ZIP prefixes; 4 ZIP prefixes have no valid coordinate afterward.
+- The ignored `data/processed/gold_v1.parquet` file contains 96,470 unique eligible orders: 6,534 late and 89,936 on time. The eligible order without payment data remains present.
+- The rebuilt Parquet file is 8,623,905 bytes.
+- The corrected quality summary found 14 missing approval delays, 16 missing product-weight and product-volume totals, 265 orders without customer coordinates, and 477 orders without an available seller distance. No approval delay or promised window is negative.
+- The corrected order-level mean seller-distance distribution ranges from 0.0 km to 3,398.552914 km, with median 433.921922 km, 95th percentile 2,095.116701599999 km, and 99th percentile 2,482.5390120800002 km.
+- The national envelope removes outside-Brazil coordinates but cannot detect every plausible-looking in-country location error.
+- No model, API, frontend, cloud resource, or deployment exists.
 
 ### Files changed
 
-- `docs/DATA_AUDIT.md`: created the detailed raw-data audit checkpoint.
-- `README.md`: updated the concise project status, corrected the shipping-limit decision, and linked the audit.
-- `docs/PROJECT_STATUS.md`: marked raw-data discovery complete, recorded the audit conclusions, and refreshed this handoff.
+- `delivery_delay/gold_v1.py`: added numeric-first coordinate filtering, the documented Brazil envelope, and geolocation rejection metrics.
+- `tests/test_gold_v1.py`: moved fixtures inside the envelope and added four rejection and order-preservation tests.
+- `README.md`: documented the verified envelope rule, counts, and limitation.
+- `docs/PROJECT_STATUS.md`: recorded the corrected implementation and rebuilt quality results and refreshed this handoff.
 
 ### Commands and tests that passed
 
@@ -219,6 +258,9 @@ The raw-data audit and scoped relationship checks are complete for all nine sour
 - A combined Python standard-library audit executed through `$script | python -` inspected the remaining six source CSVs plus only the necessary relationship columns from the three previously inspected files. The analysis completed successfully.
 - All reconciliation checks performed and reported by the combined audit passed. Review-to-order coverage was intentionally not performed.
 - `git status --short --branch` returned `## main...origin/main` after the combined read-only audit.
+- `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider` passed all 15 synthetic tests in 3.78 seconds.
+- `.venv\Scripts\python.exe -m delivery_delay.gold_v1 --raw-dir data/raw --output data/processed/gold_v1.parquet` rebuilt the ignored Parquet successfully with every locked cohort count satisfied and the new geolocation-quality metrics reported.
+- The post-build in-memory Parquet reconciliation passed, confirming the locked cohort, target distribution, retained missing-payment order, corrected distance thresholds, and 8,623,905-byte output.
 
 ### Git verification
 
@@ -229,11 +271,13 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Blockers or uncertainties
 
-- No blocker prevents beginning the local Gold-v1 builder.
-- One eligible order has no payment row and must be retained through a left join.
-- Geolocation duplicates, missing ZIP coverage, and coordinate-outlier risk require explicit handling.
+- No implementation blocker remains, but the corrected Gold-v1 contract requires approval before model training.
+- One eligible order lacks payment data but is retained with explicit defaults and an indicator.
+- There are 265 orders without customer coordinates and 477 without an available seller distance after national-envelope filtering.
+- The maximum order-level mean seller distance is 3,398.552914 km. Plausible but incorrectly located in-country coordinates may remain.
+- Product-weight and product-volume totals are missing for 16 orders, and approval delay is missing for 14 orders.
 - `shipping_limit_date` has a documented seller-deadline meaning, but its exact prediction-time availability is not verified and its observed values contain anomalies. It is excluded from Gold-v1.
 
 ### Next exact action
 
-Implement a reproducible local Gold-v1 dataset builder that produces and validates one row per eligible order using only approved prediction-time features.
+Review the corrected Gold-v1 geolocation and distance summary and approve the dataset contract before model training begins.
