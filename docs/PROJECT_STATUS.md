@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-03
+Last updated: 2026-09-04
 
 ## Project goal
 
@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The orders-, customers-, and order-items-file inspections and their relationship checks are complete. Three of the nine source CSV files have been content-inspected. No application code, processed dataset, saved join, aggregation, or model has been created.
+Raw-data discovery and the scoped relationship checks are complete for all nine source CSV files. The next milestone is the reproducible local Gold-v1 dataset builder. No application code, processed dataset, saved join, aggregation, model, API, or deployment exists.
 
 ## Locked architecture
 
@@ -33,7 +33,7 @@ Development and validation will happen locally before cloud services are introdu
 - Verified that `.gitignore` is located inside the repository root.
 - Created the initial Git commit, `4d04780` (`chore: initialize project documentation`).
 - Verified that nine source CSV files exist under the ignored `data/raw/` directory.
-- Content-inspected `olist_orders_dataset.csv`, `olist_customers_dataset.csv`, and `olist_order_items_dataset.csv`; the other six source CSV contents remain uninspected.
+- Completed the read-only audit of all nine source CSV files. Detailed evidence is recorded in `docs/DATA_AUDIT.md`.
 - Verified 99,441 rows and 99,441 unique `order_id` values, with no duplicate `order_id` values, malformed rows, or unparseable timestamps.
 - Verified an eligible training cohort of 96,470 delivered orders with valid actual and estimated delivery dates.
 - Verified 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%) in the eligible cohort.
@@ -56,6 +56,14 @@ Development and validation will happen locally before cloud services are introdu
 - Verified that every one of the 96,470 eligible training orders has item data, producing 110,189 item rows before aggregation.
 - Verified that all price and freight values are parseable and nonnegative; freight is zero in 383 rows.
 - Verified that `shipping_limit_date` is earlier than approval in 127 item rows, later than estimated delivery in 372 item rows, and dated 2019 or later in 4 item rows.
+- Verified 32,951 well-formed product rows with unique `product_id` values. Every product used by order items exists, and no product is unused.
+- Verified 3,095 well-formed seller rows with unique `seller_id` values and no missing values. Every seller used by order items exists, and no seller is unused.
+- Verified 103,886 well-formed payment rows with unique (`order_id`, `payment_sequential`) values and no missing values. Every payment row matches an order record, but one eligible order has no payment row.
+- Verified 1,000,163 well-formed geolocation rows with no missing values, 19,015 ZIP prefixes, and 261,831 exact duplicate occurrences beyond the first. Geolocation lacks 157 customer ZIP prefixes and 7 seller ZIP prefixes.
+- Verified that every geolocation coordinate parses and falls within global valid latitude and longitude ranges. Observed extremes create coordinate-outlier risk, so Gold-v1 requires a documented, outlier-resistant ZIP-level representative coordinate.
+- Verified 71 complete, unique category translations. Two used product categories lack translations, and no translation entry is unused.
+- Verified 99,224 well-formed review rows and a unique (`review_id`, `order_id`) composite key. Review-to-order coverage and detailed review profiling were intentionally not performed.
+- All reconciliation checks that were performed and reported passed. No unperformed relationship check is included in that conclusion.
 
 ## In progress
 
@@ -63,24 +71,26 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Inspect only `data/raw/olist_products_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.
+Implement a reproducible local Gold-v1 dataset builder that constructs the verified eligible cohort, aggregates one-to-many sources safely, preserves coverage exceptions, excludes unavailable or leakage-prone fields, and validates one row per eligible order.
 
 ## Verified decisions
 
 - Target: `delay_flag = 1` when the actual delivered calendar date is later than the estimated calendar date; otherwise, `delay_flag = 0`.
 - Train only on orders with `order_status` equal to `delivered` and valid actual and estimated delivery dates.
-- Exclude reviews and post-approval events from model inputs.
+- Exclude reviews and post-approval events from model inputs. Review-to-order coverage is unnecessary for the first model and was not audited.
 - Use only information available at order approval time.
-- Do not use customer identifiers as direct model features.
+- Do not use direct identifiers or raw row keys as model features.
 - Aggregate item rows to one row per order before joining the model-training table.
 - Use item-row count, distinct product count, distinct seller count, total price, and total freight as verified aggregation candidates.
+- Aggregate payment rows to one row per order and left-join them so the eligible order without a payment row is retained.
+- Aggregate geolocation to one documented, outlier-resistant representative coordinate per ZIP prefix before deriving order-level geographic features. Coordinate-wise medians are the planned default after explicit duplicate handling.
 - Preserve raw `shipping_limit_date` values unchanged.
-- Exclude `shipping_limit_date` from the initial model because its meaning and availability at prediction time remain uncertain.
+- Treat `shipping_limit_date` as the seller's deadline for handing the order to the logistics partner.
+- Exclude `shipping_limit_date` from Gold-v1 because its availability at the exact prediction moment is not verified and the observed values contain anomalies.
 - Use a time-based train/test split.
 - Save preprocessing and the eventual model together as one pipeline.
 - Raw datasets, credentials, and `.env` files must not be committed.
 - Keep SHAP explanations optional until the core system works.
-- Inspect source CSV files one at a time; the next inspection is limited to the header and first three rows of `data/raw/olist_products_dataset.csv`.
 
 ## Verified commands and tests
 
@@ -103,16 +113,22 @@ Inspect only `data/raw/olist_products_dataset.csv`, beginning with its header an
 - A Python standard-library scan executed through `$analysisCode | python -` inspected only `data/raw/olist_order_items_dataset.csv` and produced the verified item structure, identifier, composition, timestamp, price, and freight results recorded above.
 - A Python standard-library relationship and anomaly check executed through `$analysisCode | python -` inspected only the orders and order-items files. It verified order coverage, the 110,189 eligible-cohort item rows, and the shipping-limit comparisons recorded above.
 - `git status --short --branch` returned `## main` after the order-items inspection and relationship check.
+- A combined Python standard-library audit executed through `$script | python -` inspected the remaining six source CSVs plus only the necessary relationship columns from orders, customers, and order items. The analysis exited successfully and produced the product, seller, payment, geolocation, translation, and review results recorded in `docs/DATA_AUDIT.md`.
+- All reconciliation checks performed and reported by the combined audit passed. Review-to-order coverage was intentionally not performed and is not included in that result.
+- `git status --short --branch` returned `## main...origin/main` after the combined read-only audit.
 - No application tests exist yet.
 
 ## Known issues or blockers
 
-- The contents of the other six source CSV files have not been inspected.
-- The meaning and prediction-time availability of `shipping_limit_date` remain uncertain.
+- No blocker prevents beginning the local Gold-v1 builder.
+- One eligible order has no payment row; payment aggregates must be left-joined so the order is retained.
+- Geolocation lacks 157 customer ZIP prefixes and 7 seller ZIP prefixes, contains exact duplicates, and has coordinate-outlier risk. Missing coverage must be preserved, and ZIP coordinates require robust aggregation.
+- Two used product categories lack English translations.
+- `shipping_limit_date` is the seller's logistics handoff deadline, but its availability at the exact prediction moment is not verified and its observed values contain anomalies. It is excluded from Gold-v1.
 
 ## Results not yet available
 
-- Content profiles for the other six source CSV files
+- A built and validated Gold-v1 dataset
 - Model metrics
 - API or interface test results
 - AWS, Snowflake, Docker, EKS, or CI deployment status
@@ -141,11 +157,11 @@ as stronger evidence than documentation or chat history.
 
 ## Shareable handoff
 
-Last updated: 2026-09-03
+Last updated: 2026-09-04
 
 ### Current milestone
 
-The orders-, customers-, and order-items-file inspections and their relationship checks are complete. The next milestone is to inspect only the header and first three rows of `data/raw/olist_products_dataset.csv`.
+The raw-data audit and scoped relationship checks are complete for all nine source CSV files. The next milestone is the reproducible local Gold-v1 dataset builder.
 
 ### Completed and verified
 
@@ -153,7 +169,7 @@ The orders-, customers-, and order-items-file inspections and their relationship
 - Change-control rules are present in `AGENTS.md`.
 - The initial project documentation is committed in `4d04780` (`chore: initialize project documentation`).
 - `.gitignore` no longer exempts `data/.gitkeep`; both `data/.gitkeep` and raw data paths are ignored.
-- Nine source CSV files exist under the ignored `data/raw/` directory. `olist_orders_dataset.csv`, `olist_customers_dataset.csv`, and `olist_order_items_dataset.csv` have been content-inspected; the other six source CSV contents remain uninspected.
+- Nine source CSV files exist under the ignored `data/raw/` directory, and all nine have been audited. Detailed evidence is recorded in `docs/DATA_AUDIT.md`.
 - The orders file contains 99,441 rows and 99,441 unique `order_id` values, with no duplicate `order_id` values, malformed rows, or unparseable timestamps.
 - The eligible training cohort contains 96,470 delivered orders with valid actual and estimated delivery dates.
 - `delay_flag = 1` when the actual delivered calendar date is later than the estimated calendar date; otherwise, `delay_flag = 0`.
@@ -176,14 +192,20 @@ The orders-, customers-, and order-items-file inspections and their relationship
 - Item rows must be aggregated to one row per order before joining the model-training table. Verified candidates are item-row count, distinct product count, distinct seller count, total price, and total freight.
 - Price and freight values are parseable and nonnegative; freight is zero in 383 rows.
 - `shipping_limit_date` is earlier than approval in 127 item rows, later than estimated delivery in 372 item rows, and dated 2019 or later in 4 item rows.
-- Raw shipping-limit values will remain unchanged, and `shipping_limit_date` is excluded from the initial model because its meaning and prediction-time availability remain uncertain.
-- No application code, processed dataset, saved join, aggregation, or model has been created, and no application tests exist yet.
-- `git status --short --branch` returned `## main` after the order-items inspection and relationship check.
+- `shipping_limit_date` is the seller's deadline for handing the order to the logistics partner. Raw values will remain unchanged, but the field is excluded from Gold-v1 because its availability at the exact prediction moment is not verified and its observed values contain anomalies.
+- Products contain 32,951 well-formed rows, sellers contain 3,095, payments contain 103,886, geolocation contains 1,000,163, category translation contains 71, and reviews contain 99,224.
+- Every item product and seller ID has a matching lookup record. Every payment row matches an order record, but one eligible order has no payment row.
+- Geolocation contains 261,831 exact duplicate occurrences beyond the first, lacks 157 customer and 7 seller ZIP prefixes, and has coordinate-outlier risk. Gold-v1 requires a robust ZIP-level representative coordinate.
+- Two used product categories lack translations. Reviews are excluded, and review-to-order coverage was intentionally not audited.
+- All reconciliation checks that were performed and reported passed; this conclusion does not include relationships outside the audit scope.
+- No application code, processed dataset, saved join, aggregation, model, API, or deployment exists, and no application tests exist yet.
+- `git status --short --branch` returned `## main...origin/main` after the combined read-only audit.
 
 ### Files changed
 
-- `README.md`: updated the current status and refined the prediction contract.
-- `docs/PROJECT_STATUS.md`: recorded the completed order-items inspection and relationship check and refreshed this shareable handoff.
+- `docs/DATA_AUDIT.md`: created the detailed raw-data audit checkpoint.
+- `README.md`: updated the concise project status, corrected the shipping-limit decision, and linked the audit.
+- `docs/PROJECT_STATUS.md`: marked raw-data discovery complete, recorded the audit conclusions, and refreshed this handoff.
 
 ### Commands and tests that passed
 
@@ -194,6 +216,9 @@ The orders-, customers-, and order-items-file inspections and their relationship
 - A Python standard-library scan executed through `$analysisCode | python -` inspected only the order-items CSV and returned the verified item-level results.
 - A Python standard-library relationship and anomaly check executed through `$analysisCode | python -` inspected only the orders and order-items files and returned the verified coverage and shipping-limit results.
 - `git status --short --branch` returned `## main` after the order-items inspection and relationship check.
+- A combined Python standard-library audit executed through `$script | python -` inspected the remaining six source CSVs plus only the necessary relationship columns from the three previously inspected files. The analysis completed successfully.
+- All reconciliation checks performed and reported by the combined audit passed. Review-to-order coverage was intentionally not performed.
+- `git status --short --branch` returned `## main...origin/main` after the combined read-only audit.
 
 ### Git verification
 
@@ -204,9 +229,11 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Blockers or uncertainties
 
-- The contents of the other six source CSV files remain uninspected.
-- The meaning and prediction-time availability of `shipping_limit_date` remain uncertain.
+- No blocker prevents beginning the local Gold-v1 builder.
+- One eligible order has no payment row and must be retained through a left join.
+- Geolocation duplicates, missing ZIP coverage, and coordinate-outlier risk require explicit handling.
+- `shipping_limit_date` has a documented seller-deadline meaning, but its exact prediction-time availability is not verified and its observed values contain anomalies. It is excluded from Gold-v1.
 
 ### Next exact action
 
-Inspect only `data/raw/olist_products_dataset.csv`, beginning with its header and first three rows. Do not inspect the contents of any other source CSV during this milestone.
+Implement a reproducible local Gold-v1 dataset builder that produces and validates one row per eligible order using only approved prediction-time features.
