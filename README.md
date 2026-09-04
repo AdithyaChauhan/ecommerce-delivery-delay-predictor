@@ -10,8 +10,9 @@ This project will build an application for e-commerce operations teams that esti
 - The verified Brazil coordinate envelope rejected 31 raw geolocation rows across 20 ZIP prefixes; four ZIP prefixes lost all coordinates, 265 orders lack customer coordinates, and 477 lack a seller-to-customer distance.
 - Three models were compared using validation average precision: XGBoost baseline 0.139615, shallow regularized XGBoost 0.127092, and balanced LogisticRegression 0.113171. The existing XGBoost baseline was retained.
 - On the fixed, previously observed test period, the retained model scored ROC-AUC 0.584928 and average precision 0.065252. Its top 5% contains 63 late orders out of 724, with 8.701657% precision and 2.030995x lift over the 4.284431% test prevalence.
-- No API, frontend, cloud resource, or deployment exists.
-- Further model tuning is outside the MVP. The next milestone is the minimal FastAPI inference service.
+- The minimal local FastAPI inference service is implemented with `GET /health` and `POST /predict`.
+- The endpoint is a historical demonstration of the 2016–2018 Model-v2 artifacts; current orders require newer training data and retraining.
+- No frontend, cloud resource, or deployment exists. Further model tuning is outside the MVP.
 
 ## Prediction contract
 
@@ -40,6 +41,7 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 python -m delivery_delay.gold_v1 --raw-dir data/raw --output data/processed/gold_v1.parquet
 python -m delivery_delay.train --gold data/processed/gold_v1.parquet --artifacts-dir models
+python -m uvicorn delivery_delay.api:app --reload
 ```
 
 PowerShell activation alternative:
@@ -49,6 +51,8 @@ PowerShell activation alternative:
 ```
 
 The raw CSVs, generated Parquet output, and model artifacts remain local and ignored by Git. Training saves the exact evaluated preprocessing-plus-XGBoost pipeline to `models/delay_xgboost_pipeline.joblib`; Model-v2 comparison artifacts are also ignored. Model outputs are delay-risk scores, not calibrated probabilities. The fixed chronological test period was already observed during baseline development and is not an untouched final holdout.
+
+While the API is running, open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for generated documentation. `POST /predict` accepts one JSON object containing all 30 model features; `order_id` is optional metadata and is never sent to the model. A synthetic request is provided at `examples/predict_request.json`.
 
 ## Planned architecture
 
@@ -72,8 +76,10 @@ Local development and validation come before cloud implementation. Each layer wi
 - `AGENTS.md`: permanent working rules for Codex.
 - `delivery_delay/gold_v1.py`: validated local Gold-v1 builder and command-line entry point.
 - `delivery_delay/train.py`: reproducible chronological split, preprocessing, baseline, XGBoost training, threshold selection, evaluation, and artifact saving.
+- `delivery_delay/api.py`: local FastAPI health and single-order inference endpoints using the saved Model-v2 artifacts.
 - `tests/test_gold_v1.py`: synthetic tests that do not require raw Olist data.
 - `tests/test_train.py`: synthetic training, leakage, preprocessing, threshold, metrics, and artifact tests.
+- `tests/test_api.py`: synthetic API contract and validation tests independent of ignored artifacts.
 - `docs/DATA_AUDIT.md`: verified raw-data structure, quality, relationships, aggregation requirements, and exclusions.
 - `docs/PROJECT_STATUS.md`: verified progress, decisions, evidence, blockers, and the next exact action.
 - `README.md`: public project overview and setup instructions as they become available.

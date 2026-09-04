@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. Further model tuning is complete for the MVP. No API, frontend, cloud resource, or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service is implemented and smoke-tested against the saved Model-v2 artifacts. Further model tuning is complete for the MVP. No frontend, cloud resource, or deployment exists.
 
 ## Locked architecture
 
@@ -83,6 +83,11 @@ Development and validation will happen locally before cloud services are introdu
 - The national envelope removes coordinates outside Brazil, including the verified Spain-like coordinate for ZIP `83252`. It does not prove that every remaining coordinate is correctly located; plausible but incorrectly located in-country coordinates may remain.
 - Added `delivery_delay/train.py` with the existing `MODEL_FEATURE_COLUMNS` whitelist, deterministic chronological 70%/15%/15% splitting, training-only preprocessing, DummyClassifier baseline, fixed-seed XGBoost, training-only class weighting, validation-only threshold selection, and one final test evaluation.
 - Added `tests/test_train.py` with baseline and Model-v2 synthetic tests covering split ordering and disjointness, feature and leakage contracts, separate preprocessing, threshold and ranking selection, metrics, and artifact round-tripping.
+- Added `delivery_delay/api.py` with a lifespan-based FastAPI application. It loads the saved Model-v2 pipeline and metrics once at startup, validates exactly one request containing all 30 model features, preserves feature order, rejects forbidden or non-finite inputs, and returns a risk score, stored threshold, boolean decision, model name, and optional order metadata.
+- Added `tests/test_api.py` with temporary/injected-artifact tests for health, valid and tracked-example prediction, feature ordering, unknown categories, nullable values, required and forbidden fields, non-finite numbers, score validation, and threshold behavior.
+- Added `examples/predict_request.json` as a documented synthetic request containing all 30 features and optional `order_id`, with no target or leakage fields.
+- Added FastAPI `0.141.1`, Uvicorn `0.52.4`, and HTTPX `0.28.1` to the approved dependency set.
+- Verified focused API tests: 48 passed. Verified the complete suite: 72 passed with 11 dependency warnings. Smoke-tested the real ignored Model-v2 artifacts: `/health` returned `xgboost_baseline` with 30 features, and `/predict` returned risk score `0.20008252561092377`, threshold `0.5614128112792969`, and `predicted_delay: false` for the tracked example.
 - Added direct training dependencies pinned in `requirements.txt`: scikit-learn 1.8.0, xgboost 3.1.2, and joblib 1.5.2.
 - Verified focused Model-v2 tests with `.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider tests/test_train.py`: 9 passed. Verified the complete suite with `.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`: 24 passed with dependency deprecation warnings.
 - Trained the exact saved model with `.venv\\Scripts\\python.exe -m delivery_delay.train --gold data/processed/gold_v1.parquet --artifacts-dir models` using random seed 42 and training `scale_pos_weight` 11.765406427221173.
@@ -207,7 +212,7 @@ Last updated: 2026-09-04
 
 ### Current milestone
 
-The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. The Model-v2 comparison and validation-selected baseline are complete, with further model tuning closed for the MVP. The next milestone is the minimal FastAPI inference service.
+The reproducible local Gold-v1 builder, Model-v2 comparison, and minimal local FastAPI inference service are complete and verified. Further model tuning is closed for the MVP.
 
 ### Completed and verified
 
@@ -253,14 +258,18 @@ The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. 
 - The corrected quality summary found 14 missing approval delays, 16 missing product-weight and product-volume totals, 265 orders without customer coordinates, and 477 orders without an available seller distance. No approval delay or promised window is negative.
 - The corrected order-level mean seller-distance distribution ranges from 0.0 km to 3,398.552914 km, with median 433.921922 km, 95th percentile 2,095.116701599999 km, and 99th percentile 2,482.5390120800002 km.
 - The national envelope removes outside-Brazil coordinates but cannot detect every plausible-looking in-country location error.
-- No model, API, frontend, cloud resource, or deployment exists.
+- No frontend, cloud resource, or deployment exists.
 
 ### Files changed
 
 - `delivery_delay/train.py`: implemented the bounded Model-v2 comparison, validation-only selection, winner-only test evaluation, ranking metrics, and ignored artifacts.
 - `tests/test_train.py`: added synthetic Model-v2 selection, preprocessing, ranking, and reload tests.
-- `README.md`: recorded the verified Model-v2 checkpoint and next FastAPI milestone.
+- `README.md`: recorded the verified Model-v2 checkpoint and local FastAPI usage.
 - `docs/PROJECT_STATUS.md`: recorded the complete Model-v2 experiment and refreshed this handoff.
+- `delivery_delay/api.py`: implemented the lifespan-based health and prediction service.
+- `tests/test_api.py`: added API contract and validation tests.
+- `examples/predict_request.json`: added the tracked synthetic prediction request.
+- `requirements.txt`: added the approved FastAPI, Uvicorn, and HTTPX pins.
 
 ### Commands and tests that passed
 
@@ -282,6 +291,7 @@ The reproducible local Gold-v1 builder and its 15 synthetic tests are complete. 
 - Model-v2 artifacts are ignored and will not be committed. Model outputs are risk scores, not calibrated probabilities.
 - The fixed chronological test period was already observed during baseline development and is not an untouched final holdout.
 - Further model tuning is complete for the MVP.
+- The API milestone passed focused and complete tests and real-artifact smoke tests.
 
 ### Git verification
 
@@ -301,6 +311,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Define and implement the minimal FastAPI service with `GET /health` and `POST /predict`.
-
-Define and implement the minimal FastAPI service with `GET /health` and `POST /predict`.
+Review the verified local FastAPI milestone and authorize its commit when ready.
