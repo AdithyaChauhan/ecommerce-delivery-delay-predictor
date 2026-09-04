@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 ## Project goal
 
@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service is implemented and smoke-tested against the saved Model-v2 artifacts. Further model tuning is complete for the MVP. No frontend, cloud resource, or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. Further model tuning is complete for the MVP. No cloud resource or deployment exists.
 
 ## Locked architecture
 
@@ -208,7 +208,7 @@ as stronger evidence than documentation or chat history.
 
 ## Shareable handoff
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 ### Current milestone
 
@@ -258,7 +258,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, and minimal local F
 - The corrected quality summary found 14 missing approval delays, 16 missing product-weight and product-volume totals, 265 orders without customer coordinates, and 477 orders without an available seller distance. No approval delay or promised window is negative.
 - The corrected order-level mean seller-distance distribution ranges from 0.0 km to 3,398.552914 km, with median 433.921922 km, 95th percentile 2,095.116701599999 km, and 99th percentile 2,482.5390120800002 km.
 - The national envelope removes outside-Brazil coordinates but cannot detect every plausible-looking in-country location error.
-- No frontend, cloud resource, or deployment exists.
+- No cloud resource or deployment exists.
 
 ### Files changed
 
@@ -270,6 +270,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, and minimal local F
 - `tests/test_api.py`: added API contract and validation tests.
 - `examples/predict_request.json`: added the tracked synthetic prediction request.
 - `requirements.txt`: added the approved FastAPI, Uvicorn, and HTTPX pins.
+- `frontend/package.json`, `frontend/package-lock.json`, `frontend/index.html`, `frontend/vite.config.js`, `frontend/src/main.jsx`, `frontend/src/App.jsx`, `frontend/src/api.js`, `frontend/src/demoOrders.js`, `frontend/src/styles.css`, and `frontend/src/App.test.jsx`: implemented the Vite/React synthetic risk dashboard and tests.
 
 ### Commands and tests that passed
 
@@ -292,6 +293,8 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, and minimal local F
 - The fixed chronological test period was already observed during baseline development and is not an untouched final holdout.
 - Further model tuning is complete for the MVP.
 - The API milestone passed focused and complete tests and real-artifact smoke tests.
+- The frontend milestone passed `npm ci`, 4 Vitest tests, and `npm run build`. The Vite root returned HTTP 200, the `/health` and `/predict` proxy checks succeeded, and all 8 synthetic predictions returned scores from 0.080391 to 0.855535 with 1 predicted delay and 7 not predicted.
+- Verified the frontend environment as Node.js `v24.20.0` with npm `11.19.0`. Plain `npm install` regenerated `frontend/package-lock.json`, and `npm ci` completed with no engine or peer-dependency errors; npm reported 0 vulnerabilities.
 
 ### Git verification
 
@@ -311,4 +314,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Review the verified local FastAPI milestone and authorize its commit when ready.
+Review the verified frontend milestone and authorize its commit when ready.
