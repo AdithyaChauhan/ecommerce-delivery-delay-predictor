@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. Further model tuning is complete for the MVP. No cloud resource or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. Further model tuning is complete for the MVP. No cloud resource or deployment exists.
 
 ## Locked architecture
 
@@ -180,9 +180,7 @@ Define and implement the minimal FastAPI service with `GET /health` and `POST /p
 
 ## Results not yet available
 
-- FastAPI service implementation and endpoint tests
-- API or interface test results
-- AWS, Snowflake, Docker, EKS, or CI deployment status
+- AWS, Snowflake, EKS, or CI deployment status
 - Cloud cost
 
 ## Session handoff prompt
@@ -212,7 +210,7 @@ Last updated: 2026-09-05
 
 ### Current milestone
 
-The reproducible local Gold-v1 builder, Model-v2 comparison, and minimal local FastAPI inference service are complete and verified. Further model tuning is closed for the MVP.
+The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, and single-container Docker image are complete and verified. Further model tuning is closed for the MVP.
 
 ### Completed and verified
 
@@ -268,6 +266,8 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, and minimal local F
 - `docs/PROJECT_STATUS.md`: recorded the complete Model-v2 experiment and refreshed this handoff.
 - `delivery_delay/api.py`: implemented the lifespan-based health and prediction service.
 - `tests/test_api.py`: added API contract and validation tests.
+- `Dockerfile`: added the multi-stage frontend/runtime image, non-root user, artifact copy, and urllib health check.
+- `.dockerignore`: restricted the Docker build context to application files and the two approved ignored model artifacts.
 - `examples/predict_request.json`: added the tracked synthetic prediction request.
 - `requirements.txt`: added the approved FastAPI, Uvicorn, and HTTPX pins.
 - `frontend/package.json`, `frontend/package-lock.json`, `frontend/index.html`, `frontend/vite.config.js`, `frontend/src/main.jsx`, `frontend/src/App.jsx`, `frontend/src/api.js`, `frontend/src/demoOrders.js`, `frontend/src/styles.css`, and `frontend/src/App.test.jsx`: implemented the Vite/React synthetic risk dashboard and tests.
@@ -295,6 +295,11 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, and minimal local F
 - The API milestone passed focused and complete tests and real-artifact smoke tests.
 - The frontend milestone passed `npm ci`, 4 Vitest tests, and `npm run build`. The Vite root returned HTTP 200, the `/health` and `/predict` proxy checks succeeded, and all 8 synthetic predictions returned scores from 0.080391 to 0.855535 with 1 predicted delay and 7 not predicted.
 - Verified the frontend environment as Node.js `v24.20.0` with npm `11.19.0`. Plain `npm install` regenerated `frontend/package-lock.json`, and `npm ci` completed with no engine or peer-dependency errors; npm reported 0 vulnerabilities.
+- Added a multi-stage `Dockerfile` using `node:24.20.0-bookworm-slim` for the frontend build and `python:3.13.15-slim-bookworm` for the non-root runtime. The runtime installs only `libgomp1` with apt cleanup, serves the compiled dashboard and API on `0.0.0.0:8000`, and uses a standard-library urllib health check.
+- Added `.dockerignore` rules that exclude Git history, data, tests, virtual environments, caches, frontend dependencies/build output, and unrelated artifacts while allowing only `models/delay_model_v2_pipeline.joblib` and `models/delay_model_v2_metrics.json` into the build context. The example request and frontend source are not copied into the runtime image.
+- Verified `docker --version` as Docker 29.7.2 and `docker compose version` as Docker Compose 5.5.0; `docker info` reported ServerVersion 29.7.2, Docker Desktop Linux, and daemon `docker-desktop`.
+- Built `delivery-delay:local` successfully. The image size is 668,324,225 bytes. The bounded health poll reached `healthy`; `/`, `/health`, `/predict`, `/docs`, and `/openapi.json` returned HTTP 200. `/health` reported model `xgboost_baseline` and 30 expected features; the tracked synthetic request returned risk score `0.20008252561092377`, threshold `0.5614128112792969`, and `predicted_delay: false`.
+- Verified the image config user is `appuser` and the running process UID is `10001` (`appgroup`). `/app/models` contains exactly the two approved artifacts (500,962-byte pipeline and 7,800-byte metrics file); raw/processed data, tests, Git files, virtual environments, node_modules, examples, and frontend source are absent. The temporary smoke-test container was stopped and removed; the verified image was retained.
 
 ### Git verification
 
@@ -314,4 +319,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Review the verified frontend milestone and authorize its commit when ready.
+Review the verified Docker milestone and authorize its commit when ready.

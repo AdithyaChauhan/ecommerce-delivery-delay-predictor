@@ -69,6 +69,17 @@ While the API is running, open [http://127.0.0.1:8000/docs](http://127.0.0.1:800
 
 The dashboard uses the Vite proxy for relative `/health` and `/predict` requests. All displayed orders are synthetic historical-demo data; displayed values are risk scores, not probabilities.
 
+## Local Docker image
+
+Docker packages the compiled dashboard and FastAPI service in one non-root container. The local build uses the ignored Model-v2 artifacts already present in `models/`; they are copied into the image but are not committed to Git.
+
+```bash
+docker build -t delivery-delay:local .
+docker run --rm -p 8000:8000 delivery-delay:local
+```
+
+The image serves the dashboard at `/`, with `/health`, `/predict`, `/docs`, and `/openapi.json` available on port 8000. A future GitHub Actions build must download approved model artifacts from controlled storage before running `docker build`; model files remain excluded from Git.
+
 ## Planned architecture
 
 ```text

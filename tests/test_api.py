@@ -139,3 +139,19 @@ def test_invalid_pipeline_score_is_rejected():
     with TestClient(app) as client:
         response = client.post("/predict", json=example_payload())
     assert response.status_code == 500
+
+
+def test_static_frontend_preserves_api_documentation_routes(tmp_path):
+    (tmp_path / "index.html").write_text("<h1>synthetic dashboard</h1>", encoding="utf-8")
+    app = create_app(
+        pipeline=CapturingPipeline(), metrics=metrics(), static_dir=tmp_path
+    )
+    with TestClient(app) as client:
+        root = client.get("/")
+        docs = client.get("/docs")
+        schema = client.get("/openapi.json")
+    assert root.status_code == 200
+    assert "synthetic dashboard" in root.text
+    assert docs.status_code == 200
+    assert schema.status_code == 200
+    assert "/predict" in schema.json()["paths"]

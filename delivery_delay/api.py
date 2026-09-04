@@ -15,6 +15,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 
 from delivery_delay.gold_v1 import MODEL_FEATURE_COLUMNS
@@ -22,6 +23,7 @@ from delivery_delay.gold_v1 import MODEL_FEATURE_COLUMNS
 
 DEFAULT_MODEL_PATH = Path("models/delay_model_v2_pipeline.joblib")
 DEFAULT_METRICS_PATH = Path("models/delay_model_v2_metrics.json")
+DEFAULT_STATIC_DIR = Path("frontend/dist")
 NULLABLE_FEATURES = {
     "approval_delay_hours",
     "product_weight_g_total",
@@ -136,6 +138,7 @@ def _load_artifacts(model_path: Path, metrics_path: Path) -> RuntimeArtifacts:
 def create_app(
     model_path: Path | str | None = None,
     metrics_path: Path | str | None = None,
+    static_dir: Path | str | None = None,
     *,
     pipeline: Any | None = None,
     metrics: dict[str, Any] | None = None,
@@ -144,6 +147,7 @@ def create_app(
 
     selected_model_path = Path(model_path or os.getenv("DELIVERY_DELAY_MODEL_PATH", DEFAULT_MODEL_PATH))
     selected_metrics_path = Path(metrics_path or os.getenv("DELIVERY_DELAY_METRICS_PATH", DEFAULT_METRICS_PATH))
+    selected_static_dir = Path(static_dir or os.getenv("DELIVERY_DELAY_STATIC_DIR", DEFAULT_STATIC_DIR))
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -211,6 +215,10 @@ def create_app(
             predicted_delay=bool(score >= runtime.threshold),
             model_name=runtime.model_name,
         )
+
+    # Mount after the API routes so /health, /predict, /docs, and /openapi.json win.
+    if selected_static_dir.is_dir():
+        app.mount("/", StaticFiles(directory=selected_static_dir, html=True), name="frontend")
 
     return app
 
