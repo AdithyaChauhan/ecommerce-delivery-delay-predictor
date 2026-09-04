@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The next milestone is to approve the corrected Gold-v1 contract before model training. No model, API, frontend, cloud resource, or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. A reproducible local DummyClassifier baseline and XGBoost model are now trained and verified with a chronological split. No API, frontend, cloud resource, or deployment exists.
 
 ## Locked architecture
 
@@ -81,6 +81,15 @@ Development and validation will happen locally before cloud services are introdu
 - The corrected quality summary found no negative approval delays and no negative promised-delivery windows. It found 265 orders without customer coordinates and 477 orders without an available seller-to-customer distance.
 - Corrected order-level mean seller-distance distribution: minimum 0.0 km, median 433.921922 km, 95th percentile 2,095.116701599999 km, 99th percentile 2,482.5390120800002 km, and maximum 3,398.552914 km.
 - The national envelope removes coordinates outside Brazil, including the verified Spain-like coordinate for ZIP `83252`. It does not prove that every remaining coordinate is correctly located; plausible but incorrectly located in-country coordinates may remain.
+- Added `delivery_delay/train.py` with the existing `MODEL_FEATURE_COLUMNS` whitelist, deterministic chronological 70%/15%/15% splitting, training-only preprocessing, DummyClassifier baseline, fixed-seed XGBoost, training-only class weighting, validation-only threshold selection, and one final test evaluation.
+- Added `tests/test_train.py` with 5 synthetic tests covering split ordering and disjointness, feature and leakage contracts, missing and unknown categorical preprocessing, threshold selection, metrics, and artifact round-tripping.
+- Added direct training dependencies pinned in `requirements.txt`: scikit-learn 1.8.0, xgboost 3.1.2, and joblib 1.5.2.
+- Verified complete tests with `.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`: 20 passed with one NumPy/joblib deprecation warning.
+- Trained the exact saved model with `.venv\\Scripts\\python.exe -m delivery_delay.train --gold data/processed/gold_v1.parquet --artifacts-dir models` using random seed 42 and training `scale_pos_weight` 11.765406427221173.
+- The training split contains 67,529 rows (62,239 on time, 5,290 late; 92.166329%/7.833671%) from `2016-09-15 12:16:38` through `2018-04-15 20:12:35`; validation contains 14,470 rows (13,846/624; 95.687630%/4.312370%) through `2018-06-21 08:29:29`; test contains 14,471 rows (13,851/620; 95.715569%/4.284431%) through `2018-08-29 15:00:37`.
+- The selected validation F1 threshold is 0.5614128112792969. Test metrics are ROC-AUC 0.5849283037675166, average precision 0.0652516226594603, precision 0.06823104693140794, recall 0.30483870967741933, F1 0.11150442477876106, with TP 189, FP 2,581, TN 11,270, and FN 431.
+- The DummyClassifier test baseline has ROC-AUC 0.5, average precision 0.04284430930827172, precision 0.0, recall 0.0, F1 0.0, with TP 0, FP 0, TN 13,851, and FN 620.
+- Reloaded `models/delay_xgboost_pipeline.joblib` and produced five finite delay-risk scores in `[0, 1]`. Git confirmed both generated model files are ignored under `models/`.
 
 ## In progress
 
@@ -88,7 +97,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Review the corrected Gold-v1 geolocation and distance summary, then approve the dataset contract before model training begins.
+Review the measured local baseline and XGBoost results before serving work begins.
 
 ## Verified decisions
 
@@ -147,7 +156,7 @@ Review the corrected Gold-v1 geolocation and distance summary, then approve the 
 
 ## Known issues or blockers
 
-- No implementation blocker remains, but the corrected Gold-v1 contract still requires approval before model training.
+- No implementation blocker remains for the local training milestone.
 - One eligible order has no payment row; the builder retains it and sets explicit missing-payment defaults and an indicator.
 - There are 265 orders without customer coordinates and 477 without an available seller-to-customer distance after filtering.
 - The maximum order-level mean seller distance is 3,398.552914 km after rejecting coordinates outside the national envelope.
@@ -158,8 +167,7 @@ Review the corrected Gold-v1 geolocation and distance summary, then approve the 
 
 ## Results not yet available
 
-- Approval of the Gold-v1 quality review and final feature contract
-- Model metrics
+- Review of the local model metrics and decision threshold
 - API or interface test results
 - AWS, Snowflake, Docker, EKS, or CI deployment status
 - Cloud cost

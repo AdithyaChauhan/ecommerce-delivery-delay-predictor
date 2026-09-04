@@ -8,8 +8,10 @@ This project will build an application for e-commerce operations teams that esti
 - The verified eligible cohort contains 96,470 orders: 6,534 late orders (6.773090%) and 89,936 on-time orders (93.226910%).
 - The reproducible local Gold-v1 builder and 15 synthetic tests are implemented. Its ignored Parquet output contains exactly one row for each eligible order.
 - The verified Brazil coordinate envelope rejected 31 raw geolocation rows across 20 ZIP prefixes; four ZIP prefixes lost all coordinates, 265 orders lack customer coordinates, and 477 lack a seller-to-customer distance.
-- No model, API, frontend, cloud resource, or deployment exists.
-- The next milestone is to approve the corrected Gold-v1 dataset contract before model training.
+- A reproducible local DummyClassifier baseline and XGBoost model have been trained against Gold-v1.
+- The saved XGBoost test results are ROC-AUC 0.584928, average precision 0.065252, precision 0.068231, recall 0.304839, and F1 0.111504.
+- No API, frontend, cloud resource, or deployment exists.
+- The next milestone is to review the measured baseline and model results before serving work begins.
 
 ## Prediction contract
 
@@ -37,6 +39,7 @@ source .venv/Scripts/activate
 python -m pip install -r requirements.txt
 python -m pytest -q
 python -m delivery_delay.gold_v1 --raw-dir data/raw --output data/processed/gold_v1.parquet
+python -m delivery_delay.train --gold data/processed/gold_v1.parquet --artifacts-dir models
 ```
 
 PowerShell activation alternative:
@@ -45,7 +48,7 @@ PowerShell activation alternative:
 .\.venv\Scripts\Activate.ps1
 ```
 
-The raw CSVs and generated Parquet output remain local and ignored by Git.
+The raw CSVs, generated Parquet output, and model artifacts remain local and ignored by Git. Training saves the exact evaluated preprocessing-plus-XGBoost pipeline to `models/delay_xgboost_pipeline.joblib` and its threshold, split evidence, package versions, and verified metrics to `models/delay_training_metrics.json`. Model outputs are delay-risk scores, not calibrated probabilities.
 
 ## Planned architecture
 
@@ -68,7 +71,9 @@ Local development and validation come before cloud implementation. Each layer wi
 
 - `AGENTS.md`: permanent working rules for Codex.
 - `delivery_delay/gold_v1.py`: validated local Gold-v1 builder and command-line entry point.
+- `delivery_delay/train.py`: reproducible chronological split, preprocessing, baseline, XGBoost training, threshold selection, evaluation, and artifact saving.
 - `tests/test_gold_v1.py`: synthetic tests that do not require raw Olist data.
+- `tests/test_train.py`: synthetic training, leakage, preprocessing, threshold, metrics, and artifact tests.
 - `docs/DATA_AUDIT.md`: verified raw-data structure, quality, relationships, aggregation requirements, and exclusions.
 - `docs/PROJECT_STATUS.md`: verified progress, decisions, evidence, blockers, and the next exact action.
 - `README.md`: public project overview and setup instructions as they become available.
