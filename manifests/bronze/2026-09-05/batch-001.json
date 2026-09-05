@@ -1,0 +1,98 @@
+{
+    "schema_version":  1,
+    "batch_id":  "batch-001",
+    "created_at_utc":  "2026-09-05T14:26:46Z",
+    "project":  "delivery-delay",
+    "environment":  "dev",
+    "bucket":  "delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d",
+    "region":  "ap-southeast-1",
+    "bronze_prefix":  "bronze/2026-09-05/batch-001/",
+    "source_directory":  "data/raw",
+    "source_file_count":  9,
+    "excluded_files":  [
+                           "archive.zip"
+                       ],
+    "files":  [
+                  {
+                      "filename":  "olist_products_dataset.csv",
+                      "size_bytes":  2379446,
+                      "sha256_hex":  "3e6569628a17fbc75fd206ee357b59e20364b9afa90f5b6cd5b4d624c58aa9cc",
+                      "sha256_base64":  "PmVpYooX+8df0gbuNXtZ4gNkua+pD1ts1bTWJMWKqcw=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_products_dataset.csv",
+                      "version_id":  "a35dcWfPZOrSimRwrYsMh__7bIYnGssn",
+                      "etag":  "\"e935401104a3669223b83c9a01fdf5ca\""
+                  },
+                  {
+                      "filename":  "olist_orders_dataset.csv",
+                      "size_bytes":  17654914,
+                      "sha256_hex":  "8df58ef3d2d7e9944010f7beecd9b75367f5588ec6e3c91cec19ae3345ef9ecf",
+                      "sha256_base64":  "jfWO89LX6ZRAEPe+7Nm3U2f1WI7G48kc7BmuM0Xvns8=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_orders_dataset.csv",
+                      "version_id":  "Yl_9DD0_m9..BSgVqZRibsIc3kVuU2LN",
+                      "etag":  "\"8bd60e55c1ca229d9f70b62f3e72f22c\""
+                  },
+                  {
+                      "filename":  "product_category_name_translation.csv",
+                      "size_bytes":  2613,
+                      "sha256_hex":  "a81f0d1f27b27e7293f761bc79e3ce8f348ee39c4b3ed3e49bde38f478586278",
+                      "sha256_base64":  "qB8NHyeyfnKT92G8eePOjzSO45xLPtPkm9449HhYYng=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/product_category_name_translation.csv",
+                      "version_id":  "0kEQ8GMJWnwsFpVMs12cia3j1Zo8m9SU",
+                      "etag":  "\"4196d142e8f2b9697521fc50c97f626b\""
+                  },
+                  {
+                      "filename":  "olist_sellers_dataset.csv",
+                      "size_bytes":  174703,
+                      "sha256_hex":  "1f643d2b950373b85735e7794b20986f528d7a000432e7c6f9bcbb44d0846a0e",
+                      "sha256_base64":  "H2Q9K5UDc7hXNed5SyCYb1KNegAEMufG+by7RNCEag4=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_sellers_dataset.csv",
+                      "version_id":  "XA8qTolHcs3R_zy1eq7LZ1VJrBLp6mLd",
+                      "etag":  "\"5b22c02facdf842d6c0aea36e1849018\""
+                  },
+                  {
+                      "filename":  "olist_order_reviews_dataset.csv",
+                      "size_bytes":  14451670,
+                      "sha256_hex":  "012b61c7593e34f51fa614efdf802b9c7056ce6aae5307ddb93236e7cfc797d7",
+                      "sha256_base64":  "ASthx1k+NPUfphTv34ArnHBWzmquUwfduTI258/Hl9c=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_order_reviews_dataset.csv",
+                      "version_id":  "TnaUvUxZwJShSfNOOcprsw1gEkReu68o",
+                      "etag":  "\"914066be00d2db0c3d857f071cff1688\""
+                  },
+                  {
+                      "filename":  "olist_geolocation_dataset.csv",
+                      "size_bytes":  61273883,
+                      "sha256_hex":  "b514f6fc991b9566aeba02aa5d67e2c3630f034b60a0e05aa0d082a3b66d88d6",
+                      "sha256_base64":  "tRT2/JkblWauugKqXWfiw2MPA0tgoOBaoNCCo7ZtiNY=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_geolocation_dataset.csv",
+                      "version_id":  "yLMMKkrXJw.mCrwgs36D2m4xmiliErCm",
+                      "etag":  "\"6d8464e41c8e2013955e437b6b4fafbd\""
+                  },
+                  {
+                      "filename":  "olist_customers_dataset.csv",
+                      "size_bytes":  9033957,
+                      "sha256_hex":  "983a422239e1712ded753b3bf9ecf47dc73f144d306029dcfa99e70a226883d2",
+                      "sha256_base64":  "mDpCIjnhcS3tdTs7+ez0fcc/FE0wYCnc+pnnCiJog9I=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_customers_dataset.csv",
+                      "version_id":  "O3UqePVwEMQCL_mIUr4dgRZ.OstF.xOj",
+                      "etag":  "\"8a2c4244856aab4bde3b8ed81f8ca251\""
+                  },
+                  {
+                      "filename":  "olist_order_payments_dataset.csv",
+                      "size_bytes":  5777138,
+                      "sha256_hex":  "4f713964f2815dbbaa40b9488268c55aac3627bfce5aa96cf58d1f3616de3cc0",
+                      "sha256_base64":  "T3E5ZPKBXbuqQLlIgmjFWqw2J7/OWqls9Y0fNhbePMA=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_order_payments_dataset.csv",
+                      "version_id":  "0EKfS07ZaYfKLFNEi0lGYyhakne5aI_k",
+                      "etag":  "\"75ce0c041d18e5f250c5cea9a8042944\""
+                  },
+                  {
+                      "filename":  "olist_order_items_dataset.csv",
+                      "size_bytes":  15438671,
+                      "sha256_hex":  "0bc4d068c4fe38cbb01bd90e8746e3c613fe7b4baef75fab7b0e329701c3e279",
+                      "sha256_base64":  "C8TQaMT+OMuwG9kOh0bjxhP+e0uu91+rew4ylwHD4nk=",
+                      "s3_key":  "bronze/2026-09-05/batch-001/olist_order_items_dataset.csv",
+                      "version_id":  "S_qhQraLjLabK5tGDxjHKrdp5msthvDp",
+                      "etag":  "\"f4fa76976662e9cba0633f9e49ed2645\""
+                  }
+              ]
+}

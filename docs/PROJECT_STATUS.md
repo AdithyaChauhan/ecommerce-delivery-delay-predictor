@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. Further model tuning is complete for the MVP. No cloud resource or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. Further model tuning is complete for the MVP. No cloud compute or deployment exists.
 
 ## Locked architecture
 
@@ -210,7 +210,7 @@ Last updated: 2026-09-05
 
 ### Current milestone
 
-The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, and single-container Docker image are complete and verified. Further model tuning is closed for the MVP.
+The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, single-container Docker image, and S3 Bronze batch are complete and verified. Further model tuning is closed for the MVP.
 
 ### Completed and verified
 
@@ -268,6 +268,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - `tests/test_api.py`: added API contract and validation tests.
 - `Dockerfile`: added the multi-stage frontend/runtime image, non-root user, artifact copy, and urllib health check.
 - `.dockerignore`: restricted the Docker build context to application files and the two approved ignored model artifacts.
+- `manifests/bronze/2026-09-05/batch-001.json`: recorded the nine-file Bronze ingestion metadata, checksums, S3 keys, version IDs, and ETags.
 - `examples/predict_request.json`: added the tracked synthetic prediction request.
 - `requirements.txt`: added the approved FastAPI, Uvicorn, and HTTPX pins.
 - `frontend/package.json`, `frontend/package-lock.json`, `frontend/index.html`, `frontend/vite.config.js`, `frontend/src/main.jsx`, `frontend/src/App.jsx`, `frontend/src/api.js`, `frontend/src/demoOrders.js`, `frontend/src/styles.css`, and `frontend/src/App.test.jsx`: implemented the Vite/React synthetic risk dashboard and tests.
@@ -300,6 +301,11 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - Verified `docker --version` as Docker 29.7.2 and `docker compose version` as Docker Compose 5.5.0; `docker info` reported ServerVersion 29.7.2, Docker Desktop Linux, and daemon `docker-desktop`.
 - Built `delivery-delay:local` successfully. The image size is 668,324,225 bytes. The bounded health poll reached `healthy`; `/`, `/health`, `/predict`, `/docs`, and `/openapi.json` returned HTTP 200. `/health` reported model `xgboost_baseline` and 30 expected features; the tracked synthetic request returned risk score `0.20008252561092377`, threshold `0.5614128112792969`, and `predicted_delay: false`.
 - Verified the image config user is `appuser` and the running process UID is `10001` (`appgroup`). `/app/models` contains exactly the two approved artifacts (500,962-byte pipeline and 7,800-byte metrics file); raw/processed data, tests, Git files, virtual environments, node_modules, examples, and frontend source are absent. The temporary smoke-test container was stopped and removed; the verified image was retained.
+- Verified the Bronze bucket configuration and object reconciliation with direct AWS CLI commands using `--region ap-southeast-1`; no AWS CLI command failed during final verification. All local/S3 checksums, object counts, versions, delete-marker counts, manifest bytes, and bucket settings matched.
+- Created the S3 Bronze bucket `delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d` in `ap-southeast-1` with public access blocked, `BucketOwnerEnforced` ownership, versioning enabled, default SSE-S3 `AES256` encryption, and tags `Project=delivery-delay` and `Environment=dev`.
+- Uploaded exactly nine unchanged CSV objects under `bronze/2026-09-05/batch-001/`; `data/raw/archive.zip` was excluded. Every local full-file SHA-256 matched the stored S3 `ChecksumSHA256`, size, and recorded version/ETag.
+- Created and uploaded `manifests/bronze/2026-09-05/batch-001.json` (5,882 bytes). The tracked manifest is byte-for-byte identical to the downloaded S3 object and its stored checksum matches `GlsU++K+WT1mGN12Z8UG0FJp0HcFBPMaVeuvuigpMxQ=`.
+- Final Bronze reconciliation passed: 9 current CSV objects, 9 current object versions, 0 delete markers; the manifest has 1 current version and 0 delete markers.
 
 ### Git verification
 
@@ -319,4 +325,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Review the verified Docker milestone and authorize its commit when ready.
+Review the verified Bronze milestone and authorize its commit when ready.

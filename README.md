@@ -12,6 +12,7 @@ This project will build an application for e-commerce operations teams that esti
 - On the fixed, previously observed test period, the retained model scored ROC-AUC 0.584928 and average precision 0.065252. Its top 5% contains 63 late orders out of 724, with 8.701657% precision and 2.030995x lift over the 4.284431% test prevalence.
 - The minimal local FastAPI inference service is implemented with `GET /health` and `POST /predict`.
 - The minimal Vite/React dashboard is implemented under `frontend/` and displays eight synthetic order-risk predictions.
+- The verified Bronze batch is stored in S3 bucket `delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d` in `ap-southeast-1` under `bronze/2026-09-05/batch-001/`; exactly nine unchanged CSVs were uploaded, with `archive.zip` excluded and checksums recorded in the tracked ingestion manifest.
 - The endpoint is a historical demonstration of the 2016–2018 Model-v2 artifacts; current orders require newer training data and retraining.
 - No cloud resource or deployment exists. Further model tuning is outside the MVP.
 
