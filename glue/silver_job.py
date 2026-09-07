@@ -122,11 +122,16 @@ def write_silver(frame: DataFrame, output_path: str) -> None:
     frame.write.mode("errorifexists").option("compression", "snappy").parquet(output_path)
 
 
-def main() -> None:
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Build Silver order features")
     parser.add_argument("--source-root", required=True)
     parser.add_argument("--output", required=True)
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args(argv)
+    return args
+
+
+def main() -> None:
+    args = parse_args()
     spark = (SparkSession.builder.appName("delivery-delay-silver-v1").getOrCreate())
     try:
         silver = build_silver(spark, args.source_root)

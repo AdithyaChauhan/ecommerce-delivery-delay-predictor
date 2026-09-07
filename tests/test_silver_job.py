@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip("pyspark")
 
-from glue.silver_job import OUTPUT_COLUMNS, SOURCE_SCHEMAS, uri_join, write_silver
+from glue.silver_job import OUTPUT_COLUMNS, SOURCE_SCHEMAS, parse_args, uri_join, write_silver
 from pyspark.sql import functions as F
 from pyspark.sql import SparkSession
 
@@ -39,6 +39,30 @@ def test_reviews_are_not_an_input():
 def test_uri_join_preserves_s3_scheme():
     assert uri_join("data/raw", "x.csv") == "data/raw/x.csv"
     assert uri_join("s3://bucket/bronze/batch/", "x.csv") == "s3://bucket/bronze/batch/x.csv"
+
+
+def test_parse_args_reads_project_arguments():
+    args = parse_args(["--source-root", "s3://bucket/bronze", "--output", "s3://bucket/silver"])
+    assert args.source_root == "s3://bucket/bronze"
+    assert args.output == "s3://bucket/silver"
+
+
+def test_parse_args_ignores_glue_injected_arguments():
+    args = parse_args([
+        "--source-root", "s3://bucket/bronze",
+        "--output", "s3://bucket/silver",
+        "--JOB_NAME", "silver-job",
+        "--TempDir", "s3://bucket/temp",
+    ])
+    assert args.source_root == "s3://bucket/bronze"
+    assert args.output == "s3://bucket/silver"
+
+
+def test_parse_args_requires_project_arguments():
+    with pytest.raises(SystemExit):
+        parse_args(["--source-root", "s3://bucket/bronze"])
+    with pytest.raises(SystemExit):
+        parse_args(["--output", "s3://bucket/silver"])
 
 
 def test_numeric_parse_failure_is_rejected(spark):
