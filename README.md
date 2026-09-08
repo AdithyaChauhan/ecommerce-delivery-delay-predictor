@@ -16,7 +16,7 @@ This project will build an application for e-commerce operations teams that esti
 - The verified Silver batch was built by AWS Glue 5.0 native PySpark from the Bronze inputs and stored as versioned Parquet in `ap-southeast-1`; it contains 96,470 rows, 33 columns, 6,534 late orders, and 89,936 on-time orders, and reconciles exactly to local Gold-v1. Reviews are excluded to prevent prediction-time leakage. See [`manifests/silver/2026-09-05/batch-001.json`](manifests/silver/2026-09-05/batch-001.json) for metadata.
 - The endpoint is a historical demonstration of the 2016–2018 Model-v2 artifacts; current orders require newer training data and retraining.
 - Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists. Further model tuning is outside the MVP.
-- The verified Silver Parquet is queryable through a Snowflake external table in `AWS_AP_SOUTHEAST_1`; the data remains in private S3, and Snowflake Gold has not yet been materialized.
+- The verified Silver Parquet is queryable through a Snowflake external table in `AWS_AP_SOUTHEAST_1`, and the verified Gold snapshot is materialized as a native Snowflake table; Silver remains in private S3.
 
 ## Prediction contract
 
@@ -98,7 +98,7 @@ Olist CSV files
   -> GitHub Actions
 ```
 
-Local development and validation precede paid cloud services. The verified Bronze, Silver, and Snowflake external-table milestones are complete; designing and materializing the Snowflake Gold contract is next.
+Local development and validation precede paid cloud services. The verified Bronze, Silver, Snowflake external-table, and native Gold snapshot milestones are complete; CI/CD and model-artifact/deployment design is next, with the runtime target evaluated before assuming EKS.
 
 ## Verified Silver / AWS Glue milestone
 
@@ -106,7 +106,11 @@ AWS Glue 5.0 native PySpark transforms the versioned Bronze batch into versioned
 
 ## Verified Snowflake Silver milestone
 
-Snowflake in `AWS_AP_SOUTHEAST_1` now exposes the verified Silver Parquet through a private S3 external stage and the `ORDER_FEATURES_V1_EXT` external table. The X-Small warehouse uses 60-second auto-suspend and is suspended after validation. The external table has exactly 33 explicit columns and reconciles to 96,470 rows, 96,470 distinct orders, 6,534 late orders, and 89,936 on-time orders. Silver remains in S3; Snowflake Gold has not yet been materialized.
+Snowflake in `AWS_AP_SOUTHEAST_1` exposes the verified Silver Parquet through a private S3 external stage and the `ORDER_FEATURES_V1_EXT` external table. The X-Small warehouse uses 60-second auto-suspend and is suspended after validation. The external table has exactly 33 explicit columns and reconciles to 96,470 rows, 96,470 distinct orders, 6,534 late orders, and 89,936 on-time orders. The native `DELIVERY_DELAY_DB.GOLD.ORDER_FEATURES_V1` table is a verified 96,470-row Snowflake-managed snapshot; no live-production claim is made.
+
+## Verified Snowflake Gold milestone
+
+The native Gold table has exactly 33 columns in the verified Silver order, 96,470 rows, 96,470 unique order IDs, 6,534 late orders, 89,936 on-time orders, and zero invalid or NULL delay flags. Silver MINUS Gold and Gold MINUS Silver both returned zero differences across all 33 columns. The table is SYSADMIN-owned, non-external, retains data for 1 day, has schema evolution, change tracking, automatic clustering, and search optimization disabled, and reports 5,623,808 bytes. Query Acceleration Service is disabled and the X-Small warehouse finished suspended. No tasks, streams, Snowpipe, automatic refresh, or automatic per-batch model retraining were created.
 
 ## Repository guide
 
@@ -124,7 +128,7 @@ Snowflake in `AWS_AP_SOUTHEAST_1` now exposes the verified Silver Parquet throug
 - `docs/PROJECT_STATUS.md`: verified progress, decisions, evidence, blockers, and the next exact action.
 - `manifests/bronze/2026-09-05/batch-001.json`: verified Bronze ingestion metadata.
 - `manifests/silver/2026-09-05/batch-001.json`: verified Silver Glue run, schema, reconciliation, and S3 object metadata.
-- `snowflake/`: idempotent foundation, storage integration, external stage, 33-column external table, validation SQL, and junior-friendly execution/rollback notes.
+- `snowflake/`: idempotent foundation, storage integration, external stage, 33-column external table, native Gold snapshot, validation SQL, and junior-friendly execution/rollback notes.
 - `README.md`: public project overview and setup instructions as they become available.
 
 Raw datasets, generated artifacts, credentials, and local environment files must not be committed.

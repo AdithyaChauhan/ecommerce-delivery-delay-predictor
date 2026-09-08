@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
 
 ## Project goal
 
@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. The AWS Glue 5.0 Silver batch is complete and independently reconciled to local Gold-v1. Further model tuning is complete for the MVP. Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. The AWS Glue 5.0 Silver batch is complete and independently reconciled to local Gold-v1. The verified Snowflake Gold table is a native snapshot of Silver. Further model tuning is complete for the MVP. Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
 
 ## Locked architecture
 
@@ -110,7 +110,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Design and materialize the Snowflake Gold contract from the verified Silver external table. CI/CD and application deployment follow later; no automatic per-batch model retraining is planned.
+Design the CI/CD and model-artifact/deployment path. Evaluate the runtime target before assuming EKS; no automatic per-batch model retraining is planned.
 
 ## Verified decisions
 
@@ -180,8 +180,8 @@ Design and materialize the Snowflake Gold contract from the verified Silver exte
 
 ## Results not yet available
 
-- Snowflake Gold contract and materialized Gold table
 - EKS or CI application deployment status
+- CI/CD and model-artifact/deployment design
 - Cloud cost
 
 ## Verified AWS Glue Silver milestone
@@ -217,8 +217,19 @@ Design and materialize the Snowflake Gold contract from the verified Silver exte
 - The external table is owned by `SYSADMIN`, is valid, uses `REFRESH_ON_CREATE=TRUE`, `AUTO_REFRESH=FALSE`, and matches only Parquet files. No fixed part count is assumed.
 - The inferred schema contains exactly 33 columns in the manifest order: 5 TEXT, 1 TIMESTAMP_NTZ, 3 BOOLEAN, 9 REAL, and 15 NUMBER(38,0). The SQL defines every virtual column explicitly with `VALUE:"lowercase_column_name"` casts.
 - Snowflake reconciliation verified 96,470 rows, 96,470 distinct order IDs, 6,534 late orders, 89,936 on-time orders, and 0 invalid delay flags. A sample query decoded timestamps, strings, numbers, booleans, missing-payment fallback values, distances, and delay flags.
-- Snowflake Gold has not been materialized. This milestone uses an external table; Parquet remains in S3. No `COPY INTO`, Snowpipe, task, stream, auto-refresh, or continuous workload was introduced.
-- The repository implementation is in `snowflake/001_foundation.sql` through `snowflake/005_validation.sql` and `snowflake/README.md`. The next milestone is designing and materializing the Snowflake Gold contract, followed later by CI/CD and application deployment.
+- That Silver milestone used an external table; Parquet remains in S3. No `COPY INTO`, Snowpipe, task, stream, auto-refresh, or continuous workload was introduced.
+- The repository implementation is in `snowflake/001_foundation.sql` through `snowflake/007_gold_validation.sql` and `snowflake/README.md`.
+
+## Verified Snowflake Gold native snapshot milestone
+
+- The native table is `DELIVERY_DELAY_DB.GOLD.ORDER_FEATURES_V1`, owned by `SYSADMIN`, and sourced from `DELIVERY_DELAY_DB.SILVER.ORDER_FEATURES_V1_EXT`. Silver remains an external table over private S3 Parquet; Gold physically stores the verified snapshot in Snowflake.
+- The table has exactly 33 columns in the existing verified order, 96,470 rows, 96,470 unique order IDs, 6,534 late orders, 89,936 on-time orders, and 0 invalid or NULL delay flags.
+- Bidirectional reconciliation across all 33 explicit columns returned 0 Silver rows missing from Gold and 0 Gold rows missing from Silver.
+- Snowflake reported 5,623,808 table bytes. The table is non-external, has 1 day of data retention, and has schema evolution, change tracking, automatic clustering, and search optimization disabled.
+- The load uses an insert-only `MERGE` on `order_id`; matched rows remain unchanged, and no `CREATE OR REPLACE`, `TRUNCATE`, `DELETE`, or `COPY INTO` is used.
+- `DELIVERY_DELAY_WH` is X-Small with 60-second auto-suspend, auto-resume enabled, Query Acceleration Service disabled, owner `SYSADMIN`, and final state `SUSPENDED`.
+- No tasks, streams, Snowpipe, automatic refresh, or automatic per-batch model retraining were created. The snapshot is verified historical project data, not a current/live production dataset.
+- The implementation is in `snowflake/006_gold_table.sql` and `snowflake/007_gold_validation.sql`; Gold rollback may drop only the Gold table/schema and never deletes Silver or Bronze data.
 
 ## Session handoff prompt
 
@@ -247,7 +258,7 @@ Last updated: 2026-09-08
 
 ### Current milestone
 
-The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, single-container Docker image, S3 Bronze batch, AWS Glue Silver batch, and Snowflake Silver external table are complete and verified. Further model tuning is closed for the MVP.
+The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, single-container Docker image, S3 Bronze batch, AWS Glue Silver batch, Snowflake Silver external table, and native Snowflake Gold snapshot are complete and verified. Further model tuning is closed for the MVP.
 
 ### Completed and verified
 
@@ -310,6 +321,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - `tests/test_silver_job.py`: focused Silver transformation and Glue-argument compatibility tests.
 - `manifests/silver/2026-09-05/batch-001.json`: recorded the verified Silver Glue run, schema, reconciliation, and S3 object metadata.
 - `snowflake/001_foundation.sql`, `snowflake/002_storage_integration.sql`, `snowflake/003_silver_external_stage.sql`, `snowflake/004_silver_external_table.sql`, `snowflake/005_validation.sql`, and `snowflake/README.md`: defined the verified Snowflake external-table milestone, execution order, validation, rollback, and cost controls.
+- `snowflake/001_foundation.sql`, `snowflake/006_gold_table.sql`, and `snowflake/007_gold_validation.sql`: defined the verified native Gold snapshot, insert-only loading, bidirectional reconciliation, metadata validation, and cost controls.
 - `examples/predict_request.json`: added the tracked synthetic prediction request.
 - `requirements.txt`: added the approved FastAPI, Uvicorn, and HTTPX pins.
 - `frontend/package.json`, `frontend/package-lock.json`, `frontend/index.html`, `frontend/vite.config.js`, `frontend/src/main.jsx`, `frontend/src/App.jsx`, `frontend/src/api.js`, `frontend/src/demoOrders.js`, `frontend/src/styles.css`, and `frontend/src/App.test.jsx`: implemented the Vite/React synthetic risk dashboard and tests.
@@ -354,6 +366,8 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - After manifest upload, the Silver Parquet prefix remained unchanged: 4 current objects, 8,742,681 bytes, and 0 delete markers, verified with null-safe version-list handling.
 - `public.ecr.aws/glue/aws-glue-libs:5` focused tests passed 9 tests. The host suite passed 73 tests with 1 PySpark skip and 11 external dependency warnings.
 - Snowflake validation verified the warehouse, storage integration, stage listing, external-table validity/configuration, exact 33-column schema, reconciliation counts, sample query, and final suspended warehouse state.
+- Snowflake Gold validation verified the native 33-column contract, 96,470 rows, 96,470 unique order IDs, target counts, zero invalid flags, zero bidirectional differences across all 33 columns, 5,623,808 table bytes, one-day retention, disabled schema evolution/change tracking/clustering/search optimization, disabled Query Acceleration Service, and final suspended warehouse state.
+- `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider` passed the complete host suite after the Gold documentation/SQL changes.
 
 ### Git verification
 
@@ -373,4 +387,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Design and materialize the Snowflake Gold contract from `DELIVERY_DELAY_DB.SILVER.ORDER_FEATURES_V1_EXT`. CI/CD and application deployment follow later. No automatic per-batch model retraining is planned.
+Design the CI/CD and model-artifact/deployment path, evaluating the runtime target before assuming EKS. No automatic per-batch model retraining is planned.
