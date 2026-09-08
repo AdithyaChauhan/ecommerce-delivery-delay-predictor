@@ -16,6 +16,7 @@ This project will build an application for e-commerce operations teams that esti
 - The verified Silver batch was built by AWS Glue 5.0 native PySpark from the Bronze inputs and stored as versioned Parquet in `ap-southeast-1`; it contains 96,470 rows, 33 columns, 6,534 late orders, and 89,936 on-time orders, and reconciles exactly to local Gold-v1. Reviews are excluded to prevent prediction-time leakage. See [`manifests/silver/2026-09-05/batch-001.json`](manifests/silver/2026-09-05/batch-001.json) for metadata.
 - The endpoint is a historical demonstration of the 2016–2018 Model-v2 artifacts; current orders require newer training data and retraining.
 - Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists. Further model tuning is outside the MVP.
+- The verified Silver Parquet is queryable through a Snowflake external table in `AWS_AP_SOUTHEAST_1`; the data remains in private S3, and Snowflake Gold has not yet been materialized.
 
 ## Prediction contract
 
@@ -97,11 +98,15 @@ Olist CSV files
   -> GitHub Actions
 ```
 
-Local development and validation precede paid cloud services. The verified Bronze and Silver milestones are complete; Snowflake loading and querying is the next major milestone.
+Local development and validation precede paid cloud services. The verified Bronze, Silver, and Snowflake external-table milestones are complete; designing and materializing the Snowflake Gold contract is next.
 
 ## Verified Silver / AWS Glue milestone
 
-AWS Glue 5.0 native PySpark transforms the versioned Bronze batch into versioned Parquet Silver. The output reconciles to local Gold-v1 at 96,470 rows and 33 columns, with 6,534 late and 89,936 on-time orders. The reviews input is intentionally excluded because it occurs after prediction time. The next milestone is loading and querying the verified Silver dataset in Snowflake.
+AWS Glue 5.0 native PySpark transforms the versioned Bronze batch into versioned Parquet Silver. The output reconciles to local Gold-v1 at 96,470 rows and 33 columns, with 6,534 late and 89,936 on-time orders. The reviews input is intentionally excluded because it occurs after prediction time.
+
+## Verified Snowflake Silver milestone
+
+Snowflake in `AWS_AP_SOUTHEAST_1` now exposes the verified Silver Parquet through a private S3 external stage and the `ORDER_FEATURES_V1_EXT` external table. The X-Small warehouse uses 60-second auto-suspend and is suspended after validation. The external table has exactly 33 explicit columns and reconciles to 96,470 rows, 96,470 distinct orders, 6,534 late orders, and 89,936 on-time orders. Silver remains in S3; Snowflake Gold has not yet been materialized.
 
 ## Repository guide
 
@@ -119,6 +124,7 @@ AWS Glue 5.0 native PySpark transforms the versioned Bronze batch into versioned
 - `docs/PROJECT_STATUS.md`: verified progress, decisions, evidence, blockers, and the next exact action.
 - `manifests/bronze/2026-09-05/batch-001.json`: verified Bronze ingestion metadata.
 - `manifests/silver/2026-09-05/batch-001.json`: verified Silver Glue run, schema, reconciliation, and S3 object metadata.
+- `snowflake/`: idempotent foundation, storage integration, external stage, 33-column external table, validation SQL, and junior-friendly execution/rollback notes.
 - `README.md`: public project overview and setup instructions as they become available.
 
 Raw datasets, generated artifacts, credentials, and local environment files must not be committed.

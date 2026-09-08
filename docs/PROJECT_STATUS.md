@@ -110,7 +110,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Snowflake storage integration and loading/querying the verified Silver Parquet is the next exact action. The Silver manifest upload is verified; these three documentation/manifest files are ready for commit.
+Design and materialize the Snowflake Gold contract from the verified Silver external table. CI/CD and application deployment follow later; no automatic per-batch model retraining is planned.
 
 ## Verified decisions
 
@@ -180,7 +180,7 @@ Snowflake storage integration and loading/querying the verified Silver Parquet i
 
 ## Results not yet available
 
-- Snowflake storage integration and Silver loading/querying
+- Snowflake Gold contract and materialized Gold table
 - EKS or CI application deployment status
 - Cloud cost
 
@@ -206,6 +206,19 @@ Snowflake storage integration and loading/querying the verified Silver Parquet i
 - Read-only reconciliation joined Silver to local `data/processed/gold_v1.parquet` by `order_id`. It verified 96,470 rows, 96,470 unique order IDs, the exact 33-column order, exact identifiers/strings/flags/integers/timestamps/null placement after reader representation normalization, 6,534 late orders, and 89,936 on-time orders. Floating comparison used `rtol=1e-9` and `atol=1e-9`; all 9 compared floating columns had 0 mismatches and maximum absolute difference 0.0. `RECONCILIATION_EXIT_CODE=0`.
 - The Silver manifest is metadata-only, contains no credentials, secrets, Parquet rows, CSV rows, SHA-256 claims for Parquet, or local absolute paths, and passed `.venv/Scripts/python.exe -m json.tool manifests/silver/2026-09-05/batch-001.json`.
 - Cleanup evidence: the failed run’s four partial versions were removed before the successful retry; the final output has all four objects as current versions and 0 delete markers. No automatic per-batch model retraining is being introduced.
+
+## Verified Snowflake Silver external-table milestone
+
+- Snowflake account locator `CI08472` and region `AWS_AP_SOUTHEAST_1` were verified for the project account. No Snowflake credentials, generated external ID, or generated IAM principal are recorded in the repository.
+- Project resources are `DELIVERY_DELAY_DB`, schema `DELIVERY_DELAY_DB.SILVER`, warehouse `DELIVERY_DELAY_WH`, storage integration `DELIVERY_DELAY_S3_INT`, file format `ORDER_FEATURES_PARQUET_FORMAT`, stage `ORDER_FEATURES_V1_STAGE`, and external table `ORDER_FEATURES_V1_EXT`.
+- The warehouse is X-Small with 60-second auto-suspend, auto-resume enabled, and final state `SUSPENDED`.
+- The dedicated AWS role is `arn:aws:iam::556071985875:role/delivery-delay-snowflake-silver-read-role`. Access is read-only and limited to listing/reading the verified Silver output and Silver manifest; it has no `PutObject` or `DeleteObject` permission.
+- The stage points to `s3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/silver/2026-09-05/batch-001/order_features_v1/` in `ap-southeast-1`. `LIST` returned all four current Parquet objects totaling 8,742,681 bytes; no Silver object changed.
+- The external table is owned by `SYSADMIN`, is valid, uses `REFRESH_ON_CREATE=TRUE`, `AUTO_REFRESH=FALSE`, and matches only Parquet files. No fixed part count is assumed.
+- The inferred schema contains exactly 33 columns in the manifest order: 5 TEXT, 1 TIMESTAMP_NTZ, 3 BOOLEAN, 9 REAL, and 15 NUMBER(38,0). The SQL defines every virtual column explicitly with `VALUE:"lowercase_column_name"` casts.
+- Snowflake reconciliation verified 96,470 rows, 96,470 distinct order IDs, 6,534 late orders, 89,936 on-time orders, and 0 invalid delay flags. A sample query decoded timestamps, strings, numbers, booleans, missing-payment fallback values, distances, and delay flags.
+- Snowflake Gold has not been materialized. This milestone uses an external table; Parquet remains in S3. No `COPY INTO`, Snowpipe, task, stream, auto-refresh, or continuous workload was introduced.
+- The repository implementation is in `snowflake/001_foundation.sql` through `snowflake/005_validation.sql` and `snowflake/README.md`. The next milestone is designing and materializing the Snowflake Gold contract, followed later by CI/CD and application deployment.
 
 ## Session handoff prompt
 
@@ -234,7 +247,7 @@ Last updated: 2026-09-08
 
 ### Current milestone
 
-The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, single-container Docker image, S3 Bronze batch, and AWS Glue Silver batch are complete and verified. Further model tuning is closed for the MVP.
+The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, single-container Docker image, S3 Bronze batch, AWS Glue Silver batch, and Snowflake Silver external table are complete and verified. Further model tuning is closed for the MVP.
 
 ### Completed and verified
 
@@ -296,6 +309,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - `glue/silver_job.py`: native PySpark Silver transformation deployed to AWS Glue 5.0.
 - `tests/test_silver_job.py`: focused Silver transformation and Glue-argument compatibility tests.
 - `manifests/silver/2026-09-05/batch-001.json`: recorded the verified Silver Glue run, schema, reconciliation, and S3 object metadata.
+- `snowflake/001_foundation.sql`, `snowflake/002_storage_integration.sql`, `snowflake/003_silver_external_stage.sql`, `snowflake/004_silver_external_table.sql`, `snowflake/005_validation.sql`, and `snowflake/README.md`: defined the verified Snowflake external-table milestone, execution order, validation, rollback, and cost controls.
 - `examples/predict_request.json`: added the tracked synthetic prediction request.
 - `requirements.txt`: added the approved FastAPI, Uvicorn, and HTTPX pins.
 - `frontend/package.json`, `frontend/package-lock.json`, `frontend/index.html`, `frontend/vite.config.js`, `frontend/src/main.jsx`, `frontend/src/App.jsx`, `frontend/src/api.js`, `frontend/src/demoOrders.js`, `frontend/src/styles.css`, and `frontend/src/App.test.jsx`: implemented the Vite/React synthetic risk dashboard and tests.
@@ -339,6 +353,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - The tracked manifest was absent at its target key before upload, so no overwrite occurred. It was uploaded exactly once to `s3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/manifests/silver/2026-09-05/batch-001.json` with SSE-S3 `AES256` and SHA-256. The verified object is 6,442 bytes with SHA-256 hex `1921424aa94ddd20fc05d35d3328ec4578d1590f74389cdedc44b0d69920cf6c`, S3 `ChecksumSHA256` `GSFCSqlN3SD8BdNdMyjsRXjRWQ90OJze3ESw1pkgz2w=`, version ID `fWyI4ReN1B8YH1vUPcFwNladgJSuzYdV`, and ETag `\"8805b89ce297272c3cc31ac822ab2380\"`. `head-object --checksum-mode ENABLED` confirmed the size, checksum, AES256 encryption, version, and ETag; a temporary download matched byte-for-byte and by SHA-256. The temporary copy was removed.
 - After manifest upload, the Silver Parquet prefix remained unchanged: 4 current objects, 8,742,681 bytes, and 0 delete markers, verified with null-safe version-list handling.
 - `public.ecr.aws/glue/aws-glue-libs:5` focused tests passed 9 tests. The host suite passed 73 tests with 1 PySpark skip and 11 external dependency warnings.
+- Snowflake validation verified the warehouse, storage integration, stage listing, external-table validity/configuration, exact 33-column schema, reconciliation counts, sample query, and final suspended warehouse state.
 
 ### Git verification
 
@@ -358,4 +373,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Snowflake storage integration and loading/querying the verified Silver Parquet is the next exact action. The Silver manifest upload is verified and these three documentation/manifest files are ready for commit. No automatic per-batch model retraining is planned.
+Design and materialize the Snowflake Gold contract from `DELIVERY_DELAY_DB.SILVER.ORDER_FEATURES_V1_EXT`. CI/CD and application deployment follow later. No automatic per-batch model retraining is planned.

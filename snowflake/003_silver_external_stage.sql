@@ -1,0 +1,18 @@
+-- Run as SYSADMIN.
+-- This stage reads the verified Parquet Silver prefix in private S3.
+-- It does not copy, rewrite, or delete any S3 object.
+
+USE ROLE SYSADMIN;
+USE DATABASE DELIVERY_DELAY_DB;
+USE SCHEMA SILVER;
+
+CREATE FILE FORMAT IF NOT EXISTS ORDER_FEATURES_PARQUET_FORMAT
+  TYPE = PARQUET
+  USE_LOGICAL_TYPE = TRUE;
+
+CREATE STAGE IF NOT EXISTS ORDER_FEATURES_V1_STAGE
+  URL = 's3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/silver/2026-09-05/batch-001/order_features_v1/'
+  STORAGE_INTEGRATION = DELIVERY_DELAY_S3_INT
+  FILE_FORMAT = ORDER_FEATURES_PARQUET_FORMAT;
+
+LIST @ORDER_FEATURES_V1_STAGE;
