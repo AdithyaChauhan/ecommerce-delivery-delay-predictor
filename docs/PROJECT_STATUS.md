@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-05
+Last updated: 2026-09-08
 
 ## Project goal
 
@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. Further model tuning is complete for the MVP. No cloud compute or deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. The AWS Glue 5.0 Silver batch is complete and independently reconciled to local Gold-v1. Further model tuning is complete for the MVP. Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
 
 ## Locked architecture
 
@@ -110,7 +110,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Define and implement the minimal FastAPI service with `GET /health` and `POST /predict`.
+Snowflake storage integration and loading/querying the verified Silver Parquet is the next exact action. The Silver manifest upload is verified; these three documentation/manifest files are ready for commit.
 
 ## Verified decisions
 
@@ -180,8 +180,32 @@ Define and implement the minimal FastAPI service with `GET /health` and `POST /p
 
 ## Results not yet available
 
-- AWS, Snowflake, EKS, or CI deployment status
+- Snowflake storage integration and Silver loading/querying
+- EKS or CI application deployment status
 - Cloud cost
+
+## Verified AWS Glue Silver milestone
+
+- AWS account and region verified with read-only AWS CLI calls: account `556071985875`, region `ap-southeast-1`.
+- Bronze input verified with `aws s3api list-objects-v2 --bucket delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d --prefix bronze/2026-09-05/batch-001/ --region ap-southeast-1`: exactly 9 current CSV objects. The Glue transformation reads 8 inputs and excludes `olist_order_reviews_dataset.csv` because reviews occur after prediction time and would introduce leakage.
+- Silver bucket: `delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d`.
+- `get-public-access-block` verified `BlockPublicAcls=true`, `IgnorePublicAcls=true`, `BlockPublicPolicy=true`, and `RestrictPublicBuckets=true`.
+- `get-bucket-ownership-controls` verified `BucketOwnerEnforced`.
+- `get-bucket-versioning` verified `Enabled`.
+- `get-bucket-encryption` verified default SSE-S3 `AES256`.
+- `get-bucket-tagging` verified `Project=delivery-delay`, `Environment=dev`, and `Layer=silver`.
+- Glue script source is local `glue/silver_job.py`, deployed at `scripts/glue/silver_job_v1.py`, from committed revision `494752c` (`fix: support AWS Glue job arguments`). S3 metadata verified 12,810 bytes, SHA-256 base64 `SBiJAAECHw7qSYtal0pq+Q1SEcl3F3MOT0oJdMngGkc=`, version `KawIJN8iv3PmxTWXRh8pfvjmM40QhLX0`, ETag `"71cf09a5b3c6c7e14eb20f1deab6b604"`, and AES256 encryption.
+- Glue job `delivery-delay-silver-v1` was verified with Glue 5.0, role `arn:aws:iam::556071985875:role/delivery-delay-glue-silver-v1-role`, worker type `G.1X`, 2 workers, 30-minute timeout, 0 retries, source root `s3://delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d/bronze/2026-09-05/batch-001/`, output `s3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/silver/2026-09-05/batch-001/order_features_v1/`, temporary prefix `s3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/temporary/glue/silver-v1/`, and job bookmarks disabled.
+- The role trust policy allows `glue.amazonaws.com` to assume the role. The base inline policy permits Bronze reads only under the approved Bronze batch, Silver script reads, Silver output/temporary reads and writes, and related Glue logs/metrics. It has no `s3:DeleteObject` permission on Bronze. Silver `s3:DeleteObject` is restricted to the approved output and temporary prefixes.
+- The inline policy `delivery-delay-glue-spark-list-fix` grants only `s3:ListBucket` on the Silver bucket. No other AWS resource or policy was changed during this documentation milestone.
+- Initial run `jr_26fda9a0c89da87299fba671cc49e14fe8c9ad9b9ce8881afeaa9bdd33110339` failed during Parquet commit because Spark required Silver-bucket `s3:ListBucket`. Four uncommitted Parquet versions were created and permanently removed. Subsequent verification found 0 versions and 0 delete markers under the output prefix. This incident is retained as part of the milestone evidence.
+- Successful retry `jr_6b10587e254397bdd2366f3b4fbeab92b38bb826e6b49b9dc77e58afa892baee` was `SUCCEEDED`, started `2026-09-08T18:22:03.891000+05:30`, completed `2026-09-08T18:24:16.329000+05:30`, ran for 125 seconds, and used 250.0 DPU-seconds.
+- The output prefix is `silver/2026-09-05/batch-001/order_features_v1/`. Direct `list-objects-v2`, checksum-enabled `head-object`, and `list-object-versions` calls verified 4 observed current Parquet objects totaling 8,742,681 bytes, AES256 encryption, CRC64NVME checksums, and 0 delete markers. Four is an observed part count, not a fixed contract. Exact object metadata is recorded in `manifests/silver/2026-09-05/batch-001.json`; no SHA-256 values are invented for Parquet objects.
+- The Silver bucket listing contained only the approved Glue script and the expected output objects; no unexpected keys were found under the account’s approved script, output, temporary, or manifest scope.
+- Glue-container verification passed 9 focused tests in `public.ecr.aws/glue/aws-glue-libs:5`. The complete host suite passed 73 tests with 1 PySpark skip and 11 external dependency warnings.
+- Read-only reconciliation joined Silver to local `data/processed/gold_v1.parquet` by `order_id`. It verified 96,470 rows, 96,470 unique order IDs, the exact 33-column order, exact identifiers/strings/flags/integers/timestamps/null placement after reader representation normalization, 6,534 late orders, and 89,936 on-time orders. Floating comparison used `rtol=1e-9` and `atol=1e-9`; all 9 compared floating columns had 0 mismatches and maximum absolute difference 0.0. `RECONCILIATION_EXIT_CODE=0`.
+- The Silver manifest is metadata-only, contains no credentials, secrets, Parquet rows, CSV rows, SHA-256 claims for Parquet, or local absolute paths, and passed `.venv/Scripts/python.exe -m json.tool manifests/silver/2026-09-05/batch-001.json`.
+- Cleanup evidence: the failed run’s four partial versions were removed before the successful retry; the final output has all four objects as current versions and 0 delete markers. No automatic per-batch model retraining is being introduced.
 
 ## Session handoff prompt
 
@@ -206,11 +230,11 @@ as stronger evidence than documentation or chat history.
 
 ## Shareable handoff
 
-Last updated: 2026-09-05
+Last updated: 2026-09-08
 
 ### Current milestone
 
-The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, single-container Docker image, and S3 Bronze batch are complete and verified. Further model tuning is closed for the MVP.
+The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastAPI inference service, Vite/React dashboard, single-container Docker image, S3 Bronze batch, and AWS Glue Silver batch are complete and verified. Further model tuning is closed for the MVP.
 
 ### Completed and verified
 
@@ -256,7 +280,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - The corrected quality summary found 14 missing approval delays, 16 missing product-weight and product-volume totals, 265 orders without customer coordinates, and 477 orders without an available seller distance. No approval delay or promised window is negative.
 - The corrected order-level mean seller-distance distribution ranges from 0.0 km to 3,398.552914 km, with median 433.921922 km, 95th percentile 2,095.116701599999 km, and 99th percentile 2,482.5390120800002 km.
 - The national envelope removes outside-Brazil coordinates but cannot detect every plausible-looking in-country location error.
-- No cloud resource or deployment exists.
+- Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
 
 ### Files changed
 
@@ -269,6 +293,9 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - `Dockerfile`: added the multi-stage frontend/runtime image, non-root user, artifact copy, and urllib health check.
 - `.dockerignore`: restricted the Docker build context to application files and the two approved ignored model artifacts.
 - `manifests/bronze/2026-09-05/batch-001.json`: recorded the nine-file Bronze ingestion metadata, checksums, S3 keys, version IDs, and ETags.
+- `glue/silver_job.py`: native PySpark Silver transformation deployed to AWS Glue 5.0.
+- `tests/test_silver_job.py`: focused Silver transformation and Glue-argument compatibility tests.
+- `manifests/silver/2026-09-05/batch-001.json`: recorded the verified Silver Glue run, schema, reconciliation, and S3 object metadata.
 - `examples/predict_request.json`: added the tracked synthetic prediction request.
 - `requirements.txt`: added the approved FastAPI, Uvicorn, and HTTPX pins.
 - `frontend/package.json`, `frontend/package-lock.json`, `frontend/index.html`, `frontend/vite.config.js`, `frontend/src/main.jsx`, `frontend/src/App.jsx`, `frontend/src/api.js`, `frontend/src/demoOrders.js`, `frontend/src/styles.css`, and `frontend/src/App.test.jsx`: implemented the Vite/React synthetic risk dashboard and tests.
@@ -306,6 +333,12 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - Uploaded exactly nine unchanged CSV objects under `bronze/2026-09-05/batch-001/`; `data/raw/archive.zip` was excluded. Every local full-file SHA-256 matched the stored S3 `ChecksumSHA256`, size, and recorded version/ETag.
 - Created and uploaded `manifests/bronze/2026-09-05/batch-001.json` (5,882 bytes). The tracked manifest is byte-for-byte identical to the downloaded S3 object and its stored checksum matches `GlsU++K+WT1mGN12Z8UG0FJp0HcFBPMaVeuvuigpMxQ=`.
 - Final Bronze reconciliation passed: 9 current CSV objects, 9 current object versions, 0 delete markers; the manifest has 1 current version and 0 delete markers.
+- AWS Glue 5.0 Silver verification passed: the deployed script metadata, role trust, inline policies, job settings, failed-run incident, successful retry, four observed current Parquet objects, CRC64NVME checksums, 8,742,681 total bytes, AES256 encryption, and zero delete markers were independently checked with read-only AWS CLI calls in `ap-southeast-1`.
+- The successful Silver run reconciled exactly to local Gold-v1: 96,470 rows, 96,470 unique order IDs, 33 columns, 6,534 late, 89,936 on time, zero floating mismatches at `rtol=1e-9` and `atol=1e-9`, and maximum absolute difference 0.0.
+- `.venv\Scripts\python.exe -m json.tool manifests/silver/2026-09-05/batch-001.json` passed. The manifest contains metadata only and no credentials, secrets, data rows, or local absolute paths.
+- The tracked manifest was absent at its target key before upload, so no overwrite occurred. It was uploaded exactly once to `s3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/manifests/silver/2026-09-05/batch-001.json` with SSE-S3 `AES256` and SHA-256. The verified object is 6,442 bytes with SHA-256 hex `1921424aa94ddd20fc05d35d3328ec4578d1590f74389cdedc44b0d69920cf6c`, S3 `ChecksumSHA256` `GSFCSqlN3SD8BdNdMyjsRXjRWQ90OJze3ESw1pkgz2w=`, version ID `fWyI4ReN1B8YH1vUPcFwNladgJSuzYdV`, and ETag `\"8805b89ce297272c3cc31ac822ab2380\"`. `head-object --checksum-mode ENABLED` confirmed the size, checksum, AES256 encryption, version, and ETag; a temporary download matched byte-for-byte and by SHA-256. The temporary copy was removed.
+- After manifest upload, the Silver Parquet prefix remained unchanged: 4 current objects, 8,742,681 bytes, and 0 delete markers, verified with null-safe version-list handling.
+- `public.ecr.aws/glue/aws-glue-libs:5` focused tests passed 9 tests. The host suite passed 73 tests with 1 PySpark skip and 11 external dependency warnings.
 
 ### Git verification
 
@@ -325,4 +358,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Review the verified Bronze milestone and authorize its commit when ready.
+Snowflake storage integration and loading/querying the verified Silver Parquet is the next exact action. The Silver manifest upload is verified and these three documentation/manifest files are ready for commit. No automatic per-batch model retraining is planned.

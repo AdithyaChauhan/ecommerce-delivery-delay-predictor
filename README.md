@@ -13,8 +13,9 @@ This project will build an application for e-commerce operations teams that esti
 - The minimal local FastAPI inference service is implemented with `GET /health` and `POST /predict`.
 - The minimal Vite/React dashboard is implemented under `frontend/` and displays eight synthetic order-risk predictions.
 - The verified Bronze batch is stored in S3 bucket `delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d` in `ap-southeast-1` under `bronze/2026-09-05/batch-001/`; exactly nine unchanged CSVs were uploaded, with `archive.zip` excluded and checksums recorded in the tracked ingestion manifest.
+- The verified Silver batch was built by AWS Glue 5.0 native PySpark from the Bronze inputs and stored as versioned Parquet in `ap-southeast-1`; it contains 96,470 rows, 33 columns, 6,534 late orders, and 89,936 on-time orders, and reconciles exactly to local Gold-v1. Reviews are excluded to prevent prediction-time leakage. See [`manifests/silver/2026-09-05/batch-001.json`](manifests/silver/2026-09-05/batch-001.json) for metadata.
 - The endpoint is a historical demonstration of the 2016–2018 Model-v2 artifacts; current orders require newer training data and retraining.
-- No cloud resource or deployment exists. Further model tuning is outside the MVP.
+- Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists. Further model tuning is outside the MVP.
 
 ## Prediction contract
 
@@ -96,7 +97,11 @@ Olist CSV files
   -> GitHub Actions
 ```
 
-Local development and validation come before cloud implementation. Each layer will be introduced only when its milestone begins.
+Local development and validation precede paid cloud services. The verified Bronze and Silver milestones are complete; Snowflake loading and querying is the next major milestone.
+
+## Verified Silver / AWS Glue milestone
+
+AWS Glue 5.0 native PySpark transforms the versioned Bronze batch into versioned Parquet Silver. The output reconciles to local Gold-v1 at 96,470 rows and 33 columns, with 6,534 late and 89,936 on-time orders. The reviews input is intentionally excluded because it occurs after prediction time. The next milestone is loading and querying the verified Silver dataset in Snowflake.
 
 ## Repository guide
 
@@ -104,12 +109,16 @@ Local development and validation come before cloud implementation. Each layer wi
 - `delivery_delay/gold_v1.py`: validated local Gold-v1 builder and command-line entry point.
 - `delivery_delay/train.py`: reproducible chronological split, preprocessing, baseline, XGBoost training, threshold selection, evaluation, and artifact saving.
 - `delivery_delay/api.py`: local FastAPI health and single-order inference endpoints using the saved Model-v2 artifacts.
+- `glue/silver_job.py`: native PySpark Silver transformation used by AWS Glue 5.0.
 - `tests/test_gold_v1.py`: synthetic tests that do not require raw Olist data.
 - `tests/test_train.py`: synthetic training, leakage, preprocessing, threshold, metrics, and artifact tests.
 - `tests/test_api.py`: synthetic API contract and validation tests independent of ignored artifacts.
+- `tests/test_silver_job.py`: focused Silver schema, parser, aggregation, and writer tests.
 - `frontend/`: Vite/React dashboard, synthetic demo orders, proxy configuration, and Vitest/React Testing Library tests.
 - `docs/DATA_AUDIT.md`: verified raw-data structure, quality, relationships, aggregation requirements, and exclusions.
 - `docs/PROJECT_STATUS.md`: verified progress, decisions, evidence, blockers, and the next exact action.
+- `manifests/bronze/2026-09-05/batch-001.json`: verified Bronze ingestion metadata.
+- `manifests/silver/2026-09-05/batch-001.json`: verified Silver Glue run, schema, reconciliation, and S3 object metadata.
 - `README.md`: public project overview and setup instructions as they become available.
 
 Raw datasets, generated artifacts, credentials, and local environment files must not be committed.

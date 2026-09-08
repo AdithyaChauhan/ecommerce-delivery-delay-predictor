@@ -1,0 +1,178 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": "2026-09-08T14:03:08.7262581Z",
+  "project": "delivery-delay",
+  "environment": "dev",
+  "layer": "silver",
+  "region": "ap-southeast-1",
+  "batch_id": "batch-001",
+  "source": {
+    "bucket": "delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d",
+    "prefix": "bronze/2026-09-05/batch-001/",
+    "included_inputs": [
+      "olist_orders_dataset.csv",
+      "olist_customers_dataset.csv",
+      "olist_order_items_dataset.csv",
+      "olist_products_dataset.csv",
+      "olist_sellers_dataset.csv",
+      "olist_order_payments_dataset.csv",
+      "olist_geolocation_dataset.csv",
+      "product_category_name_translation.csv"
+    ],
+    "excluded_input": {
+      "filename": "olist_order_reviews_dataset.csv",
+      "reason": "Reviews occur after prediction time and would introduce leakage."
+    }
+  },
+  "glue": {
+    "job_name": "delivery-delay-silver-v1",
+    "glue_version": "5.0",
+    "role": "arn:aws:iam::556071985875:role/delivery-delay-glue-silver-v1-role",
+    "worker_type": "G.1X",
+    "workers": 2,
+    "timeout_minutes": 30,
+    "retries": 0,
+    "job_bookmarks": "disabled",
+    "script": {
+      "local_path": "glue/silver_job.py",
+      "s3_key": "scripts/glue/silver_job_v1.py",
+      "size_bytes": 12810,
+      "sha256_base64": "SBiJAAECHw7qSYtal0pq+Q1SEcl3F3MOT0oJdMngGkc=",
+      "version_id": "KawIJN8iv3PmxTWXRh8pfvjmM40QhLX0",
+      "etag": "\"71cf09a5b3c6c7e14eb20f1deab6b604\"",
+      "encryption": "AES256"
+    },
+    "source_root": "s3://delivery-delay-bronze-olist-ap-southeast-1-20260905-7f3c9a2d/bronze/2026-09-05/batch-001/",
+    "output": "s3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/silver/2026-09-05/batch-001/order_features_v1/",
+    "temporary_prefix": "s3://delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d/temporary/glue/silver-v1/"
+  },
+  "successful_run": {
+    "run_id": "jr_6b10587e254397bdd2366f3b4fbeab92b38bb826e6b49b9dc77e58afa892baee",
+    "state": "SUCCEEDED",
+    "started_at": "2026-09-08T18:22:03.891000+05:30",
+    "completed_at": "2026-09-08T18:24:16.329000+05:30",
+    "execution_time_seconds": 125,
+    "dpu_seconds": 250.0
+  },
+  "output_schema": {
+    "column_count": 33,
+    "columns": [
+      "order_id",
+      "order_purchase_timestamp",
+      "purchase_year",
+      "purchase_month",
+      "purchase_day_of_week",
+      "purchase_hour",
+      "approval_delay_hours",
+      "approval_timestamp_missing",
+      "promised_delivery_window_days",
+      "customer_state",
+      "item_row_count",
+      "distinct_product_count",
+      "distinct_seller_count",
+      "item_price_total",
+      "freight_value_total",
+      "product_weight_g_total",
+      "product_volume_cm3_total",
+      "product_measurement_missing_item_count",
+      "product_category_fallback_item_count",
+      "primary_product_category",
+      "primary_seller_state",
+      "payment_row_count",
+      "distinct_payment_type_count",
+      "payment_value_total",
+      "max_payment_installments",
+      "primary_payment_type",
+      "payment_data_missing",
+      "customer_geolocation_missing",
+      "seller_customer_distance_missing_count",
+      "seller_customer_distance_km_min",
+      "seller_customer_distance_km_mean",
+      "seller_customer_distance_km_max",
+      "delay_flag"
+    ]
+  },
+  "reconciliation": {
+    "joined_on": "order_id",
+    "rows": 96470,
+    "unique_order_ids": 96470,
+    "late_count": 6534,
+    "on_time_count": 89936,
+    "floating_tolerance": {
+      "rtol": 1e-9,
+      "atol": 1e-9
+    },
+    "floating_columns": [
+      "approval_delay_hours",
+      "item_price_total",
+      "freight_value_total",
+      "product_weight_g_total",
+      "product_volume_cm3_total",
+      "payment_value_total",
+      "seller_customer_distance_km_min",
+      "seller_customer_distance_km_mean",
+      "seller_customer_distance_km_max"
+    ],
+    "max_absolute_difference_by_floating_column": {
+      "approval_delay_hours": 0.0,
+      "item_price_total": 0.0,
+      "freight_value_total": 0.0,
+      "product_weight_g_total": 0.0,
+      "product_volume_cm3_total": 0.0,
+      "payment_value_total": 0.0,
+      "seller_customer_distance_km_min": 0.0,
+      "seller_customer_distance_km_mean": 0.0,
+      "seller_customer_distance_km_max": 0.0
+    },
+    "identifiers_strings_flags_integers_timestamps_and_nulls": "exact after reader dtype and timestamp-unit normalization",
+    "exit_code": 0
+  },
+  "output": {
+    "bucket": "delivery-delay-silver-olist-ap-southeast-1-20260905-7f3c9a2d",
+    "prefix": "silver/2026-09-05/batch-001/order_features_v1/",
+    "observed_part_object_count": 4,
+    "part_count_is_fixed_contract": false,
+    "objects": [
+      {
+        "key": "silver/2026-09-05/batch-001/order_features_v1/part-00000-8af467b7-3177-4da2-a41e-c92c3df877f7-c000.snappy.parquet",
+        "size_bytes": 2235337,
+        "etag": "\"db3ca824baa2610697d43541f2baf38c-1\"",
+        "version_id": "gQnvOtcz0MEs0aq2N.XCk.tCOcWbkfW2",
+        "checksum_algorithm": "CRC64NVME",
+        "checksum": "cjVu4Jk9mZU=",
+        "encryption": "AES256"
+      },
+      {
+        "key": "silver/2026-09-05/batch-001/order_features_v1/part-00001-8af467b7-3177-4da2-a41e-c92c3df877f7-c000.snappy.parquet",
+        "size_bytes": 2194448,
+        "etag": "\"31d2b077435525dffad82791c046e649-1\"",
+        "version_id": "3k4prfLG7TzSEIOT7xVbXK6xxI3GC45q",
+        "checksum_algorithm": "CRC64NVME",
+        "checksum": "lpfa+YSoDhE=",
+        "encryption": "AES256"
+      },
+      {
+        "key": "silver/2026-09-05/batch-001/order_features_v1/part-00002-8af467b7-3177-4da2-a41e-c92c3df877f7-c000.snappy.parquet",
+        "size_bytes": 2148169,
+        "etag": "\"6911051ef71d645fea97dd4105c83f0b-1\"",
+        "version_id": ".pjlveYGRH1vr0FUM.YriExmvGOiV7b5",
+        "checksum_algorithm": "CRC64NVME",
+        "checksum": "5zQwZ9MUT60=",
+        "encryption": "AES256"
+      },
+      {
+        "key": "silver/2026-09-05/batch-001/order_features_v1/part-00003-8af467b7-3177-4da2-a41e-c92c3df877f7-c000.snappy.parquet",
+        "size_bytes": 2164727,
+        "etag": "\"e3aaf60f647e152e9aecf530ca3ae378-1\"",
+        "version_id": "_7weEyefWca07JVWeVLdR9HEDMJ79o_.",
+        "checksum_algorithm": "CRC64NVME",
+        "checksum": "YCPugjmjX40=",
+        "encryption": "AES256"
+      }
+    ],
+    "total_object_count": 4,
+    "total_bytes": 8742681,
+    "delete_marker_count": 0,
+    "all_current_versions": true
+  }
+}
