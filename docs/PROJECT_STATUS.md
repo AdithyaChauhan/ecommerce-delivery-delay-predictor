@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. The AWS Glue 5.0 Silver batch is complete and independently reconciled to local Gold-v1. The verified Snowflake Gold table is a native snapshot of Silver. Further model tuning is complete for the MVP. Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. The AWS Glue 5.0 Silver batch is complete and independently reconciled to local Gold-v1. The verified Snowflake Gold table is a native snapshot of Silver. The private Model-v2 artifact release is verified in versioned S3. Further model tuning is complete for the MVP. Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
 
 ## Locked architecture
 
@@ -110,7 +110,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Design the CI/CD and model-artifact/deployment path. Evaluate the runtime target before assuming EKS; no automatic per-batch model retraining is planned.
+Implement least-privilege GitHub Actions OIDC, checksum-verified retrieval of the exact S3 model versions, Docker build, and ECR publication. Evaluate the runtime target before assuming EKS; no automatic per-batch model retraining is planned.
 
 ## Verified decisions
 
@@ -181,7 +181,7 @@ Design the CI/CD and model-artifact/deployment path. Evaluate the runtime target
 ## Results not yet available
 
 - EKS or CI application deployment status
-- CI/CD and model-artifact/deployment design
+- GitHub Actions OIDC, checksum-verified retrieval, Docker build, and ECR publication
 - Cloud cost
 
 ## Verified AWS Glue Silver milestone
@@ -230,6 +230,20 @@ Design the CI/CD and model-artifact/deployment path. Evaluate the runtime target
 - `DELIVERY_DELAY_WH` is X-Small with 60-second auto-suspend, auto-resume enabled, Query Acceleration Service disabled, owner `SYSADMIN`, and final state `SUSPENDED`.
 - No tasks, streams, Snowpipe, automatic refresh, or automatic per-batch model retraining were created. The snapshot is verified historical project data, not a current/live production dataset.
 - The implementation is in `snowflake/006_gold_table.sql` and `snowflake/007_gold_validation.sql`; Gold rollback may drop only the Gold table/schema and never deletes Silver or Bronze data.
+
+## Verified private Model-v2 artifact release
+
+- The release bucket is `delivery-delay-model-artifacts-ap-southeast-1-20260908-7f3c9a2d` in `ap-southeast-1`, under the immutable prefix `models/delay-risk/v2/release-001/`.
+- Bucket verification confirmed all four public-access-block settings true, `BucketOwnerEnforced` ownership, versioning `Enabled`, default AES256 encryption, and tags `Project=delivery-delay`, `Environment=dev`, and `Layer=model-artifacts`.
+- The release contains exactly two current object versions, both `IsLatest=true`, with 0 delete markers. The exact read-only AWS query for this reconciliation returned `VersionCount=2`, `DeleteMarkerCount=0`, and an empty `DeleteMarkers` array.
+- `delay_model_v2_pipeline.joblib` is 500,962 bytes with SHA-256 hex `80eaea6f912ff5fcfbba41d170ab25712475483450755ad3f482e99b685df549`, base64 `gOrqb5Ev9fz7ukHRcKslcSR1SDRQdVrT9ILpm2hd9Uk=`, version `_HPDWo0IDrUO.jMepaV_bP6T4b7wT86a`, ETag `"2cae5a7785081e5f718e7f51f2a365d3"`, AES256, and content type `application/octet-stream`.
+- `delay_model_v2_metrics.json` is 7,800 bytes with SHA-256 hex `2a9e709f1099093e9dbb78d93be4840c63ee56d68eda3852655fda6dc0f8a834`, base64 `Kp5wnxCZCT6du3jZO+SEDGPuVtaO2jhSZV/abcD4qDQ=`, version `ZEgrcL8ae5u5y0OJOEaBcPe7RPwM36EV`, ETag `"411f15332bd3fb7b36cdb431d19584aa"`, AES256, and content type `application/json`.
+- Read-only local `Get-FileHash` and temporary AWS `s3api get-object` verification matched both SHA-256 hashes and sizes byte-for-byte. The temporary downloads were removed; the joblib was not deserialized or loaded.
+- The earlier wrapper-reported delete-marker count was a false result; the literal AWS JMESPath query is the authoritative corrected evidence recorded above.
+- The API and Dockerfile require only these two V2 artifacts. Earlier `delay_xgboost_pipeline.joblib` and `delay_training_metrics.json` outputs are not part of this runtime release. Model files remain ignored and uncommitted.
+- The metadata-only manifest is `manifests/model/delay-risk/v2/release-001.json`; it contains no credentials, secrets, model contents, raw rows, processed data, or absolute local paths. No training commit or training timestamp is claimed.
+- The manifest was uploaded once, without overwriting an existing key, to `s3://delivery-delay-model-artifacts-ap-southeast-1-20260908-7f3c9a2d/manifests/model/delay-risk/v2/release-001.json`. The exact current version is 2,694 bytes with SHA-256 hex `1a7829f872235bc66eedcae91b4a0fa7659888978dcc1a558a7dca4375e8a9d2`, S3 checksum `Gngp+HIjW8Zu7crpG0oPp2WYiJeNzBpVin3KQ3XoqdI=`, version `Y5p13E7lXe2GGSdnecDG2IglWTkb94z2`, ETag `"6bfdc354b1b9cdc4685859b3d6632da4"`, AES256 encryption, and `application/json` content type. A read-only download of that exact version matched the local manifest byte-for-byte and by SHA-256; the temporary copy was removed. The model bucket now contains exactly three current versions—two runtime artifacts and one manifest—with zero delete markers. The release manifest remains unchanged and contains no self-referential object checksum or version section.
+- Future work is least-privilege GitHub Actions OIDC, exact-version and SHA-256 verification during artifact retrieval, Docker build, and ECR publication. CI must not retrain automatically; application deployment is not implemented.
 
 ## Session handoff prompt
 
@@ -320,6 +334,7 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - `glue/silver_job.py`: native PySpark Silver transformation deployed to AWS Glue 5.0.
 - `tests/test_silver_job.py`: focused Silver transformation and Glue-argument compatibility tests.
 - `manifests/silver/2026-09-05/batch-001.json`: recorded the verified Silver Glue run, schema, reconciliation, and S3 object metadata.
+- `manifests/model/delay-risk/v2/release-001.json`: recorded the verified private Model-v2 artifact release metadata, exact S3 versions, checksums, and reconciliation.
 - `snowflake/001_foundation.sql`, `snowflake/002_storage_integration.sql`, `snowflake/003_silver_external_stage.sql`, `snowflake/004_silver_external_table.sql`, `snowflake/005_validation.sql`, and `snowflake/README.md`: defined the verified Snowflake external-table milestone, execution order, validation, rollback, and cost controls.
 - `snowflake/001_foundation.sql`, `snowflake/006_gold_table.sql`, and `snowflake/007_gold_validation.sql`: defined the verified native Gold snapshot, insert-only loading, bidirectional reconciliation, metadata validation, and cost controls.
 - `examples/predict_request.json`: added the tracked synthetic prediction request.
@@ -368,6 +383,9 @@ The reproducible local Gold-v1 builder, Model-v2 comparison, minimal local FastA
 - Snowflake validation verified the warehouse, storage integration, stage listing, external-table validity/configuration, exact 33-column schema, reconciliation counts, sample query, and final suspended warehouse state.
 - Snowflake Gold validation verified the native 33-column contract, 96,470 rows, 96,470 unique order IDs, target counts, zero invalid flags, zero bidirectional differences across all 33 columns, 5,623,808 table bytes, one-day retention, disabled schema evolution/change tracking/clustering/search optimization, disabled Query Acceleration Service, and final suspended warehouse state.
 - `.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider` passed the complete host suite after the Gold documentation/SQL changes.
+- Read-only AWS S3 checks in `ap-southeast-1` verified the model bucket configuration, exact release prefix, two current versions, zero delete markers, object sizes, SHA-256 checksums, version IDs, ETags, AES256 encryption, and content types.
+- `Get-FileHash -Algorithm SHA256` plus temporary read-only `aws s3api get-object` downloads matched both local and downloaded artifact hashes and sizes; temporary copies were removed without deserializing the joblib.
+- `.venv\Scripts\python.exe -m json.tool manifests/model/delay-risk/v2/release-001.json` passed. The complete host suite remains the previously verified 73 passed, 1 skipped, and 11 warnings; no retraining or artifact loading was run for this release documentation milestone.
 
 ### Git verification
 
@@ -387,4 +405,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Design the CI/CD and model-artifact/deployment path, evaluating the runtime target before assuming EKS. No automatic per-batch model retraining is planned.
+Implement least-privilege GitHub Actions OIDC, checksum-verified retrieval of the exact S3 model versions, Docker build, and ECR publication; evaluate the runtime target before assuming EKS. No automatic per-batch model retraining is planned.

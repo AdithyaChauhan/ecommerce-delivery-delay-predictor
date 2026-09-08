@@ -17,6 +17,7 @@ This project will build an application for e-commerce operations teams that esti
 - The endpoint is a historical demonstration of the 2016–2018 Model-v2 artifacts; current orders require newer training data and retraining.
 - Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists. Further model tuning is outside the MVP.
 - The verified Silver Parquet is queryable through a Snowflake external table in `AWS_AP_SOUTHEAST_1`, and the verified Gold snapshot is materialized as a native Snowflake table; Silver remains in private S3.
+- The verified private Model-v2 release is stored in S3 bucket `delivery-delay-model-artifacts-ap-southeast-1-20260908-7f3c9a2d` in `ap-southeast-1` under `models/delay-risk/v2/release-001/`. It contains exactly the two runtime artifacts required by the API and Docker image, with versioned checksums recorded in [`manifests/model/delay-risk/v2/release-001.json`](manifests/model/delay-risk/v2/release-001.json); binary model files remain ignored and uncommitted.
 
 ## Prediction contract
 
@@ -98,7 +99,7 @@ Olist CSV files
   -> GitHub Actions
 ```
 
-Local development and validation precede paid cloud services. The verified Bronze, Silver, Snowflake external-table, and native Gold snapshot milestones are complete; CI/CD and model-artifact/deployment design is next, with the runtime target evaluated before assuming EKS.
+Local development and validation precede paid cloud services. The verified Bronze, Silver, Snowflake external-table, native Gold snapshot, and private Model-v2 artifact release milestones are complete; least-privilege GitHub Actions OIDC, checksum-verified artifact retrieval, Docker build, and ECR publication are next, with the runtime target evaluated before assuming EKS.
 
 ## Verified Silver / AWS Glue milestone
 
@@ -111,6 +112,10 @@ Snowflake in `AWS_AP_SOUTHEAST_1` exposes the verified Silver Parquet through a 
 ## Verified Snowflake Gold milestone
 
 The native Gold table has exactly 33 columns in the verified Silver order, 96,470 rows, 96,470 unique order IDs, 6,534 late orders, 89,936 on-time orders, and zero invalid or NULL delay flags. Silver MINUS Gold and Gold MINUS Silver both returned zero differences across all 33 columns. The table is SYSADMIN-owned, non-external, retains data for 1 day, has schema evolution, change tracking, automatic clustering, and search optimization disabled, and reports 5,623,808 bytes. Query Acceleration Service is disabled and the X-Small warehouse finished suspended. No tasks, streams, Snowpipe, automatic refresh, or automatic per-batch model retraining were created.
+
+## Verified private Model-v2 artifact release
+
+The API and Docker runtime require only `delay_model_v2_pipeline.joblib` and `delay_model_v2_metrics.json`. Release `release-001` stores those exact files privately in versioned S3 with public access blocked, `BucketOwnerEnforced` ownership, versioning enabled, default AES256 encryption, and `Project=delivery-delay`, `Environment=dev`, and `Layer=model-artifacts` tags. Local and downloaded SHA-256 hashes and bytes matched; the metadata-only release manifest records the exact keys, sizes, checksum forms, version IDs, ETags, encryption, and content types. The manifest was uploaded once to `manifests/model/delay-risk/v2/release-001.json` without overwrite; its exact S3 version is 2,694 bytes, AES256-encrypted JSON, and byte-for-byte identical to the local manifest. This enables future reproducible CI builds without committing binary model files. GitHub Actions OIDC, CI/CD, ECR publication, and application deployment are not implemented, and CI must not retrain the model automatically.
 
 ## Repository guide
 
@@ -128,6 +133,7 @@ The native Gold table has exactly 33 columns in the verified Silver order, 96,47
 - `docs/PROJECT_STATUS.md`: verified progress, decisions, evidence, blockers, and the next exact action.
 - `manifests/bronze/2026-09-05/batch-001.json`: verified Bronze ingestion metadata.
 - `manifests/silver/2026-09-05/batch-001.json`: verified Silver Glue run, schema, reconciliation, and S3 object metadata.
+- `manifests/model/delay-risk/v2/release-001.json`: verified private Model-v2 artifact release metadata and reconciliation.
 - `snowflake/`: idempotent foundation, storage integration, external stage, 33-column external table, native Gold snapshot, validation SQL, and junior-friendly execution/rollback notes.
 - `README.md`: public project overview and setup instructions as they become available.
 

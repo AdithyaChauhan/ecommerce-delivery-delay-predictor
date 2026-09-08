@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": "2026-09-08T20:44:14.565Z",
+  "created_at_note": "Manifest creation timestamp; not a training timestamp.",
+  "project": "delivery-delay",
+  "environment": "dev",
+  "layer": "model-artifacts",
+  "release_id": "release-001",
+  "region": "ap-southeast-1",
+  "bucket": "delivery-delay-model-artifacts-ap-southeast-1-20260908-7f3c9a2d",
+  "prefix": "models/delay-risk/v2/release-001/",
+  "bucket_configuration": {
+    "public_access_block": {
+      "block_public_acls": true,
+      "ignore_public_acls": true,
+      "block_public_policy": true,
+      "restrict_public_buckets": true
+    },
+    "object_ownership": "BucketOwnerEnforced",
+    "versioning": "Enabled",
+    "default_encryption": "AES256",
+    "tags": {
+      "Project": "delivery-delay",
+      "Environment": "dev",
+      "Layer": "model-artifacts"
+    }
+  },
+  "runtime_artifacts": [
+    {
+      "filename": "delay_model_v2_pipeline.joblib",
+      "s3_key": "models/delay-risk/v2/release-001/delay_model_v2_pipeline.joblib",
+      "size_bytes": 500962,
+      "sha256_hex": "80eaea6f912ff5fcfbba41d170ab25712475483450755ad3f482e99b685df549",
+      "sha256_base64": "gOrqb5Ev9fz7ukHRcKslcSR1SDRQdVrT9ILpm2hd9Uk=",
+      "version_id": "_HPDWo0IDrUO.jMepaV_bP6T4b7wT86a",
+      "etag": "\"2cae5a7785081e5f718e7f51f2a365d3\"",
+      "encryption": "AES256",
+      "content_type": "application/octet-stream"
+    },
+    {
+      "filename": "delay_model_v2_metrics.json",
+      "s3_key": "models/delay-risk/v2/release-001/delay_model_v2_metrics.json",
+      "size_bytes": 7800,
+      "sha256_hex": "2a9e709f1099093e9dbb78d93be4840c63ee56d68eda3852655fda6dc0f8a834",
+      "sha256_base64": "Kp5wnxCZCT6du3jZO+SEDGPuVtaO2jhSZV/abcD4qDQ=",
+      "version_id": "ZEgrcL8ae5u5y0OJOEaBcPe7RPwM36EV",
+      "etag": "\"411f15332bd3fb7b36cdb431d19584aa\"",
+      "encryption": "AES256",
+      "content_type": "application/json"
+    }
+  ],
+  "reconciliation": {
+    "current_object_version_count": 2,
+    "all_current_versions": true,
+    "delete_marker_count": 0,
+    "local_and_downloaded_sha256_match": true,
+    "byte_for_byte_match": true,
+    "temporary_verification_download_removed": true
+  },
+  "runtime_contract": {
+    "required_files": [
+      "models/delay_model_v2_pipeline.joblib",
+      "models/delay_model_v2_metrics.json"
+    ],
+    "excluded_earlier_outputs": [
+      "models/delay_xgboost_pipeline.joblib",
+      "models/delay_training_metrics.json"
+    ],
+    "model_files_ignored_by_git": true,
+    "future_ci_retrieval_must_verify_exact_s3_versions_and_sha256": true,
+    "automatic_retraining": false,
+    "github_oidc_ci_cd_ecr_and_application_deployment_implemented": false
+  }
+}
