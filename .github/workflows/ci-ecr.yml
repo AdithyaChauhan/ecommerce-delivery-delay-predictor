@@ -17,6 +17,10 @@ on:
       - "delivery_delay/**"
       - "frontend/**"
       - "manifests/model/delay-risk/v2/release-001.json"
+      - "security/ecr-scan-allowlist.json"
+      - "scripts/validate_ecr_scan.py"
+      - "tests/test_ecr_scan_policy.py"
+      - "tests/fixtures/ecr-scan-f33c05a-high-critical.json"
 
   workflow_dispatch:
     inputs:
@@ -715,6 +719,7 @@ jobs:
               "$ECR_REGISTRY"
 
       - name: Build, smoke-test, and push immutable image once
+        id: built_image
         if: steps.ecr_tag.outputs.exists == 'false'
         shell: bash
         env:
@@ -740,6 +745,13 @@ jobs:
             --platform linux/amd64 \
             --tag "$image_uri" \
             .
+
+          observed_platform="$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image_uri")"
+          if [[ ! "$observed_platform" =~ ^linux/(amd64|arm64|386|ppc64le|s390x)$ ]]; then
+            echo "Unexpected built image platform: $observed_platform" >&2
+            exit 1
+          fi
+          printf 'platform=%s\n' "$observed_platform" >> "$GITHUB_OUTPUT"
 
           if ! docker run \
             --detach \
@@ -895,6 +907,7 @@ jobs:
         shell: bash
         env:
           IMAGE_DIGEST: ${{ steps.final_image.outputs.digest }}
+          LOCAL_IMAGE_PLATFORM: ${{ steps.built_image.outputs.platform }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -978,18 +991,78 @@ jobs:
               if status == "COMPLETE":
                   print(
                       "ECR basic scan completed. Severity counts are "
-                      f"reported without enforcing a severity gate: "
+                      f"reported before fail-closed policy validation: "
                       f"{json.dumps(counts, sort_keys=True)}"
                   )
+                  findings_path = os.path.join(
+                      os.environ["RUNNER_TEMP"],
+                      "ecr-scan-findings.json",
+                  )
+                  findings_command = [
+                      "aws",
+                      "ecr",
+                      "describe-image-scan-findings",
+                      "--registry-id",
+                      "556071985875",
+                      "--repository-name",
+                      "delivery-delay-app",
+                      "--image-id",
+                      f"imageDigest={digest}",
+                      "--region",
+                      "ap-southeast-1",
+                      "--no-cli-pager",
+                      "--output",
+                      "json",
+                  ]
+                  with open(
+                      findings_path,
+                      "w",
+                      encoding="utf-8",
+                      newline="\n",
+                  ) as findings_handle:
+                      findings_result = subprocess.run(
+                          findings_command,
+                          check=False,
+                          stdout=findings_handle,
+                          stderr=subprocess.PIPE,
+                          text=True,
+                      )
+                  if findings_result.returncode != 0:
+                      sys.stderr.write(findings_result.stderr)
+                      raise SystemExit(
+                          "Unable to retrieve complete ECR image scan findings"
+                      )
+
+                  validator_command = [
+                      "python",
+                      "scripts/validate_ecr_scan.py",
+                      "--allowlist",
+                      "security/ecr-scan-allowlist.json",
+                      "--scan",
+                      findings_path,
+                      "--platform",
+                      os.environ.get("LOCAL_IMAGE_PLATFORM", ""),
+                      "--dockerfile",
+                      "Dockerfile",
+                  ]
+                  validator_result = subprocess.run(
+                      validator_command,
+                      check=False,
+                  )
+                  if validator_result.returncode != 0:
+                      raise SystemExit("ECR vulnerability policy failed")
                   break
 
               if status == "ACTIVE":
                   print(
                       "ECR enhanced scanning is ACTIVE. Findings are "
-                      "reported without enforcing a severity gate: "
+                      "reported, but the basic-scan allowlist requires "
+                      "COMPLETE status: "
                       f"{json.dumps(counts, sort_keys=True)}"
                   )
-                  break
+                  raise SystemExit(
+                      "ECR vulnerability policy requires scan status COMPLETE"
+                  )
 
               if status in terminal_failure_statuses:
                   raise SystemExit(

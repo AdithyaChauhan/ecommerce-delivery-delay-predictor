@@ -1,0 +1,190 @@
+{
+  "registryId": "556071985875",
+  "repositoryName": "delivery-delay-app",
+  "imageId": {
+    "imageDigest": "sha256:f33c05af33c05af33c05af33c05af33c05af33c05af33c05af33c05af33c05a",
+    "imageTag": "sha-f33c05a"
+  },
+  "imageScanStatus": {
+    "status": "COMPLETE",
+    "description": "The image scan completed successfully."
+  },
+  "imageScanFindings": {
+    "findingSeverityCounts": {
+      "CRITICAL": 6,
+      "HIGH": 11
+    },
+    "findings": [
+      {
+        "name": "CVE-2026-5928",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-5928",
+        "attributes": [
+          {"key": "package_name", "value": "glibc"},
+          {"key": "package_version", "value": "2.41-12+deb13u3"},
+          {"key": "package_path", "value": "usr/lib/x86_64-linux-gnu/libc.so.6"}
+        ]
+      },
+      {
+        "name": "CVE-2026-11822",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-11822",
+        "attributes": [
+          {"key": "package_name", "value": "sqlite3"},
+          {"key": "package_version", "value": "3.46.1-7+deb13u1"},
+          {"key": "package_path", "value": "usr/bin/sqlite3"}
+        ]
+      },
+      {
+        "name": "CVE-2026-48962",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-48962",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/bin/perl"}
+        ]
+      },
+      {
+        "name": "CVE-2026-13221",
+        "severity": "CRITICAL",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-13221",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/bin/perl"}
+        ]
+      },
+      {
+        "name": "CVE-2026-12087",
+        "severity": "CRITICAL",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-12087",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/lib/x86_64-linux-gnu/perl/5.40/Socket.pm"}
+        ]
+      },
+      {
+        "name": "CVE-2026-42497",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-42497",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/share/perl/5.40/Archive/Tar.pm"}
+        ]
+      },
+      {
+        "name": "CVE-2026-57433",
+        "severity": "CRITICAL",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-57433",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/share/perl/5.40/Storable.pm"}
+        ]
+      },
+      {
+        "name": "CVE-2026-57432",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-57432",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/bin/perl"}
+        ]
+      },
+      {
+        "name": "CVE-2026-11824",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-11824",
+        "attributes": [
+          {"key": "package_name", "value": "sqlite3"},
+          {"key": "package_version", "value": "3.46.1-7+deb13u1"},
+          {"key": "package_path", "value": "usr/lib/x86_64-linux-gnu/libsqlite3.so.0"}
+        ]
+      },
+      {
+        "name": "CVE-2026-48961",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-48961",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/bin/zipdetails"}
+        ]
+      },
+      {
+        "name": "CVE-2026-42496",
+        "severity": "CRITICAL",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-42496",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/share/perl/5.40/Archive/Tar.pm"}
+        ]
+      },
+      {
+        "name": "CVE-2026-5450",
+        "severity": "CRITICAL",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+        "attributes": [
+          {"key": "package_name", "value": "glibc"},
+          {"key": "package_version", "value": "2.41-12+deb13u3"},
+          {"key": "package_path", "value": "usr/lib/x86_64-linux-gnu/libc.so.6"}
+        ]
+      },
+      {
+        "name": "CVE-2026-7017",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-7017",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/share/perl/5.40/HTTP/Tiny.pm"}
+        ]
+      },
+      {
+        "name": "CVE-2026-86145",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-86145",
+        "attributes": [
+          {"key": "package_name", "value": "pcre2"},
+          {"key": "package_version", "value": "10.46-1~deb13u1"},
+          {"key": "package_path", "value": "usr/lib/x86_64-linux-gnu/libpcre2-8.so.0"}
+        ]
+      },
+      {
+        "name": "CVE-2026-85091",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-85091",
+        "attributes": [
+          {"key": "package_name", "value": "zlib"},
+          {"key": "package_version", "value": "1.3.dfsg+really1.3.1-1"},
+          {"key": "package_path", "value": "usr/lib/x86_64-linux-gnu/libz.so.1"}
+        ]
+      },
+      {
+        "name": "CVE-2026-48959",
+        "severity": "HIGH",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-48959",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/share/perl/5.40/IO/Uncompress/Unzip.pm"}
+        ]
+      },
+      {
+        "name": "CVE-2026-8376",
+        "severity": "CRITICAL",
+        "uri": "https://security-tracker.debian.org/tracker/CVE-2026-8376",
+        "attributes": [
+          {"key": "package_name", "value": "perl"},
+          {"key": "package_version", "value": "5.40.1-6"},
+          {"key": "package_path", "value": "usr/bin/perl"}
+        ]
+      }
+    ]
+  }
+}

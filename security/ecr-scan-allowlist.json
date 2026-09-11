@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "image": {
+    "platform": "linux/amd64",
+    "python_runtime_base": {
+      "image": "python:3.13.15-slim-trixie",
+      "digest": "sha256:cc9dffa47c8294ba9bb795a8dfaeb7b76f2b30acade2c52a461a2999d127eb00"
+    }
+  },
+  "exceptions": [
+    {
+      "cve": "CVE-2026-5928",
+      "severity": "HIGH",
+      "package": "glibc",
+      "version": "2.41-12+deb13u3",
+      "rationale": "The issue requires overlapping single-byte and multibyte encodings. The service accepts UTF-8 JSON and does not call ungetwc with such an encoding.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5928",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-11822",
+      "severity": "HIGH",
+      "package": "sqlite3",
+      "version": "3.46.1-7+deb13u1",
+      "rationale": "The service does not use SQLite, accept database files, or execute FTS5 MATCH queries against attacker-supplied databases.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11822",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-48962",
+      "severity": "HIGH",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The Python inference service does not execute Perl or pass attacker-controlled output globs to File::GlobMapper.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48962",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-13221",
+      "severity": "CRITICAL",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The service does not execute Perl or compile Perl regular expressions containing attacker-controlled branch sets.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-13221",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-12087",
+      "severity": "CRITICAL",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The service does not execute Perl or call Socket::pack_ip_mreq_source with attacker-controlled values.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-12087",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-42497",
+      "severity": "HIGH",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The runtime does not use Perl Archive::Tar or extract attacker-supplied archives.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42497",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-57433",
+      "severity": "CRITICAL",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The service does not execute Perl or deserialize attacker-supplied Storable records.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57433",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-57432",
+      "severity": "HIGH",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The service does not execute Perl or process attacker-controlled pack or unpack templates.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-57432",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-11824",
+      "severity": "HIGH",
+      "package": "sqlite3",
+      "version": "3.46.1-7+deb13u1",
+      "rationale": "The service does not use SQLite, accept database files, or execute FTS5 MATCH queries against attacker-supplied databases.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-11824",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-48961",
+      "severity": "HIGH",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The defect affects the Perl zipdetails CLI. The service neither executes Perl nor invokes zipdetails.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48961",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-42496",
+      "severity": "CRITICAL",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The runtime does not use Perl Archive::Tar or extract attacker-supplied archives and symlinks.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-42496",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-5450",
+      "severity": "CRITICAL",
+      "package": "glibc",
+      "version": "2.41-12+deb13u3",
+      "rationale": "The service does not call the scanf family with an attacker-controlled %mc conversion and an explicit width greater than 1024.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-7017",
+      "severity": "HIGH",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The service does not execute Perl or use HTTP::Tiny for outbound requests carrying credentials across redirects.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-7017",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-86145",
+      "severity": "HIGH",
+      "package": "pcre2",
+      "version": "10.46-1~deb13u1",
+      "rationale": "The service does not accept regular expressions or call PCRE2 DFA matching with attacker-controlled recursive patterns.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-86145",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-85091",
+      "severity": "HIGH",
+      "package": "zlib",
+      "version": "1.3.dfsg+really1.3.1-1",
+      "rationale": "The service does not perform non-blocking gzwrite operations followed by gzprintf or gzvprintf.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-85091",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-48959",
+      "severity": "HIGH",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The service does not execute Perl or use IO::Uncompress::Unzip to extract named entries from attacker-supplied ZIP files.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-48959",
+      "review_by": "2026-10-11"
+    },
+    {
+      "cve": "CVE-2026-8376",
+      "severity": "CRITICAL",
+      "package": "perl",
+      "version": "5.40.1-6",
+      "rationale": "The issue affects 32-bit Perl builds, while this image is linux/amd64; the service also does not execute Perl or compile attacker-controlled Perl regexes.",
+      "source": "https://security-tracker.debian.org/tracker/CVE-2026-8376",
+      "review_by": "2026-10-11"
+    }
+  ]
+}
