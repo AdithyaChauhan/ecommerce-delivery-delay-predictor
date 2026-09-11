@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-09
+Last updated: 2026-09-11
 
 ## Project goal
 
@@ -8,7 +8,7 @@ Build an application that predicts whether an approved e-commerce order will arr
 
 ## Current phase
 
-The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. The AWS Glue 5.0 Silver batch is complete and independently reconciled to local Gold-v1. The verified Snowflake Gold table is a native snapshot of Silver. The private Model-v2 artifact release is verified in versioned S3. Further model tuning is complete for the MVP. Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
+The reproducible local Gold-v1 builder and its synthetic tests are implemented. The verified geolocation correction removes coordinates outside a conservative Brazil envelope while preserving affected orders with missing geographic features. The rebuilt ignored Parquet output passed the locked cohort and target checks. The baseline and bounded Model-v2 experiment are trained and verified with a chronological split; the existing XGBoost baseline was retained by validation average precision. The minimal local FastAPI inference service and Vite/React dashboard are implemented and smoke-tested against the saved Model-v2 artifacts. A single-container Docker image now packages the dashboard, API, and only the approved ignored model artifacts; its runtime verification passed. The S3 Bronze batch is uploaded and fully reconciled in `ap-southeast-1`. The AWS Glue 5.0 Silver batch is complete and independently reconciled to local Gold-v1. The verified Snowflake Gold table is a native snapshot of Silver. The private Model-v2 artifact release and verified CI/ECR security milestone are complete. Further model tuning is complete for the MVP. Bronze/Silver S3 and an on-demand Glue job exist, but no continuously running cloud application deployment exists.
 
 ## Locked architecture
 
@@ -110,7 +110,7 @@ Nothing currently in progress.
 
 ## Next exact action
 
-Implement least-privilege GitHub Actions OIDC, checksum-verified retrieval of the exact S3 model versions, Docker build, and ECR publication. Evaluate the runtime target before assuming EKS; no automatic per-batch model retraining is planned.
+Evaluate and approve a low-cost managed AWS runtime for the immutable image. EKS remains unjustified for this MVP; no automatic per-batch model retraining is planned.
 
 ## Verified decisions
 
@@ -180,8 +180,7 @@ Implement least-privilege GitHub Actions OIDC, checksum-verified retrieval of th
 
 ## Results not yet available
 
-- EKS or CI application deployment status
-- GitHub Actions OIDC, checksum-verified retrieval, Docker build, and ECR publication
+- Managed cloud application runtime/deployment status
 - Cloud cost
 
 ## Verified AWS Glue Silver milestone
@@ -243,7 +242,7 @@ Implement least-privilege GitHub Actions OIDC, checksum-verified retrieval of th
 - The API and Dockerfile require only these two V2 artifacts. Earlier `delay_xgboost_pipeline.joblib` and `delay_training_metrics.json` outputs are not part of this runtime release. Model files remain ignored and uncommitted.
 - The metadata-only manifest is `manifests/model/delay-risk/v2/release-001.json`; it contains no credentials, secrets, model contents, raw rows, processed data, or absolute local paths. No training commit or training timestamp is claimed.
 - The manifest was uploaded once, without overwriting an existing key, to `s3://delivery-delay-model-artifacts-ap-southeast-1-20260908-7f3c9a2d/manifests/model/delay-risk/v2/release-001.json`. The exact current version is 2,694 bytes with SHA-256 hex `1a7829f872235bc66eedcae91b4a0fa7659888978dcc1a558a7dca4375e8a9d2`, S3 checksum `Gngp+HIjW8Zu7crpG0oPp2WYiJeNzBpVin3KQ3XoqdI=`, version `Y5p13E7lXe2GGSdnecDG2IglWTkb94z2`, ETag `"6bfdc354b1b9cdc4685859b3d6632da4"`, AES256 encryption, and `application/json` content type. A read-only download of that exact version matched the local manifest byte-for-byte and by SHA-256; the temporary copy was removed. The model bucket now contains exactly three current versions—two runtime artifacts and one manifest—with zero delete markers. The release manifest remains unchanged and contains no self-referential object checksum or version section.
-- Future work is least-privilege GitHub Actions OIDC, exact-version and SHA-256 verification during artifact retrieval, Docker build, and ECR publication. CI must not retrain automatically; application deployment is not implemented.
+- The CI/ECR security milestone is verified: least-privilege GitHub Actions OIDC retrieves exact-version model artifacts with SHA-256 verification, builds the image, applies the fail-closed scan policy, and publishes the immutable image to private ECR. CI must not retrain automatically; application deployment is not implemented.
 
 ## Session handoff prompt
 
@@ -405,4 +404,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 
 ### Next exact action
 
-Implement least-privilege GitHub Actions OIDC, checksum-verified retrieval of the exact S3 model versions, Docker build, and ECR publication; evaluate the runtime target before assuming EKS. No automatic per-batch model retraining is planned.
+Evaluate and approve a low-cost managed AWS runtime for the immutable image. EKS remains unjustified for this MVP; no automatic per-batch model retraining is planned.

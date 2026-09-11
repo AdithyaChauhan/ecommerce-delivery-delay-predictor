@@ -82,7 +82,7 @@ docker build -t delivery-delay:local .
 docker run --rm -p 8000:8000 delivery-delay:local
 ```
 
-The image serves the dashboard at `/`, with `/health`, `/predict`, `/docs`, and `/openapi.json` available on port 8000. A future GitHub Actions build must download approved model artifacts from controlled storage before running `docker build`; model files remain excluded from Git.
+The image serves the dashboard at `/`, with `/health`, `/predict`, `/docs`, and `/openapi.json` available on port 8000. GitHub Actions downloads approved model artifacts from controlled storage before running `docker build`; model files remain excluded from Git.
 
 ## Planned architecture
 
@@ -99,7 +99,7 @@ Olist CSV files
   -> GitHub Actions
 ```
 
-Local development and validation precede paid cloud services. The verified Bronze, Silver, Snowflake external-table, native Gold snapshot, and private Model-v2 artifact release milestones are complete; least-privilege GitHub Actions OIDC, checksum-verified artifact retrieval, Docker build, and ECR publication are next, with the runtime target evaluated before assuming EKS.
+Local development and validation precede paid cloud services. The verified Bronze, Silver, Snowflake external-table, native Gold snapshot, private Model-v2 artifact release, and CI/ECR security milestones are complete; the runtime target is evaluated before assuming EKS.
 
 ## Verified Silver / AWS Glue milestone
 
@@ -115,7 +115,13 @@ The native Gold table has exactly 33 columns in the verified Silver order, 96,47
 
 ## Verified private Model-v2 artifact release
 
-The API and Docker runtime require only `delay_model_v2_pipeline.joblib` and `delay_model_v2_metrics.json`. Release `release-001` stores those exact files privately in versioned S3 with public access blocked, `BucketOwnerEnforced` ownership, versioning enabled, default AES256 encryption, and `Project=delivery-delay`, `Environment=dev`, and `Layer=model-artifacts` tags. Local and downloaded SHA-256 hashes and bytes matched; the metadata-only release manifest records the exact keys, sizes, checksum forms, version IDs, ETags, encryption, and content types. The manifest was uploaded once to `manifests/model/delay-risk/v2/release-001.json` without overwrite; its exact S3 version is 2,694 bytes, AES256-encrypted JSON, and byte-for-byte identical to the local manifest. This enables future reproducible CI builds without committing binary model files. GitHub Actions OIDC, CI/CD, ECR publication, and application deployment are not implemented, and CI must not retrain the model automatically.
+The API and Docker runtime require only `delay_model_v2_pipeline.joblib` and `delay_model_v2_metrics.json`. Release `release-001` stores those exact files privately in versioned S3 with public access blocked, `BucketOwnerEnforced` ownership, versioning enabled, default AES256 encryption, and `Project=delivery-delay`, `Environment=dev`, and `Layer=model-artifacts` tags. Local and downloaded SHA-256 hashes and bytes matched; the metadata-only release manifest records the exact keys, sizes, checksum forms, version IDs, ETags, encryption, and content types. The manifest was uploaded once to `manifests/model/delay-risk/v2/release-001.json` without overwrite; its exact S3 version is 2,694 bytes, AES256-encrypted JSON, and byte-for-byte identical to the local manifest. This enables future reproducible CI builds without committing binary model files.
+
+## Verified CI/ECR security milestone
+
+Commit `4d22e0a` added the fail-closed ECR vulnerability policy, and GitHub Actions completed successfully for that commit. The private immutable image tag `sha-4d22e0a9a00ebfc722e4c3c00d7a571316ef788d` has digest `sha256:b357d7ea91ea53dd6c35d8854fecad8add6e7057c2af1ebfc4be325355b29619`. Its compressed size is 158,716,554 bytes. The base image was hardened and slimmed from 669,163,824 bytes to 158,716,042 bytes (76.28% smaller) in the prior commit `f33c05a`; this commit leaves that size effectively unchanged (+512 bytes) while adding the vulnerability gate.
+
+The `linux/amd64` scan reported 6 CRITICAL, 11 HIGH, 3 MEDIUM, and 1 LOW findings. The 17 CRITICAL/HIGH findings are reviewed temporary exceptions matched by exact CVE, severity, package, and installed version, with review/expiry on 2026-10-11; vulnerabilities were not removed and the image does not have zero vulnerabilities. CI verifies the pinned Dockerfile base and fails on unexpected, mismatched, expired, duplicate, malformed, or stale CRITICAL/HIGH entries. It publishes to private immutable ECR through GitHub OIDC. The validator, allowlist, independent fixture, and policy tests are `scripts/validate_ecr_scan.py`, `security/ecr-scan-allowlist.json`, `tests/fixtures/ecr-scan-f33c05a-high-critical.json`, and `tests/test_ecr_scan_policy.py`. No cloud application runtime is deployed yet.
 
 ## Repository guide
 
@@ -128,6 +134,10 @@ The API and Docker runtime require only `delay_model_v2_pipeline.joblib` and `de
 - `tests/test_train.py`: synthetic training, leakage, preprocessing, threshold, metrics, and artifact tests.
 - `tests/test_api.py`: synthetic API contract and validation tests independent of ignored artifacts.
 - `tests/test_silver_job.py`: focused Silver schema, parser, aggregation, and writer tests.
+- `scripts/validate_ecr_scan.py`: fail-closed ECR CRITICAL/HIGH scan-policy validator.
+- `security/ecr-scan-allowlist.json`: reviewed temporary ECR scan exceptions.
+- `tests/fixtures/ecr-scan-f33c05a-high-critical.json`: independent ECR scan fixture.
+- `tests/test_ecr_scan_policy.py`: synthetic ECR scan-policy tests.
 - `frontend/`: Vite/React dashboard, synthetic demo orders, proxy configuration, and Vitest/React Testing Library tests.
 - `docs/DATA_AUDIT.md`: verified raw-data structure, quality, relationships, aggregation requirements, and exclusions.
 - `docs/PROJECT_STATUS.md`: verified progress, decisions, evidence, blockers, and the next exact action.
