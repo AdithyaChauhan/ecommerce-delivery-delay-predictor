@@ -1,4 +1,4 @@
-FROM node:24.20.0-bookworm-slim AS frontend-build
+FROM node:24.20.0-bookworm-slim@sha256:6642ef280aebc09c4541bee0b15c9f89f0f3f3c247ddee79ae1d37eddfdcbbaa AS frontend-build
 
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
@@ -6,7 +6,7 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.13.15-slim-bookworm AS runtime
+FROM python:3.13.15-slim-trixie@sha256:cc9dffa47c8294ba9bb795a8dfaeb7b76f2b30acade2c52a461a2999d127eb00 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -20,8 +20,8 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-runtime.txt ./
+RUN pip install --no-cache-dir --only-binary=:all: -r requirements-runtime.txt
 COPY delivery_delay ./delivery_delay
 COPY models/delay_model_v2_pipeline.joblib models/delay_model_v2_metrics.json ./models/
 COPY --from=frontend-build /src/frontend/dist ./frontend-dist

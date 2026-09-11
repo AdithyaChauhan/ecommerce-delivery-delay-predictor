@@ -13,6 +13,7 @@ on:
       - ".dockerignore"
       - "Dockerfile"
       - "requirements.txt"
+      - "requirements-runtime.txt"
       - "delivery_delay/**"
       - "frontend/**"
       - "manifests/model/delay-risk/v2/release-001.json"
@@ -736,6 +737,7 @@ jobs:
           trap cleanup_smoke_container EXIT
 
           docker build \
+            --platform linux/amd64 \
             --tag "$image_uri" \
             .
 
