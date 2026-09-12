@@ -1,0 +1,30 @@
+{
+  "family": "delivery-delay-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::556071985875:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "delivery-delay-app",
+      "image": "556071985875.dkr.ecr.ap-southeast-1.amazonaws.com/delivery-delay-app:sha-4d22e0a9a00ebfc722e4c3c00d7a571316ef788d",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/delivery-delay",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "app"
+        }
+      }
+    }
+  ]
+}
