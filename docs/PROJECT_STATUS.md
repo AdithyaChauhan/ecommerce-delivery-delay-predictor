@@ -109,8 +109,7 @@ Development and validation will happen locally before cloud services are introdu
 Nothing currently in progress.
 
 ## Next exact action
-
-Evaluate and approve a low-cost managed AWS runtime for the immutable image. EKS remains unjustified for this MVP; no automatic per-batch model retraining is planned.
+The MVP is deployed and verified end to end on ECS Fargate (cluster `delivery-delay-cluster`, service `delivery-delay-svc`); `/health` and `/predict` both returned correct responses from the live task on 2026-09-11. Optional follow-ups: a stable DNS/load balancer in front of the task (the current public IP is ephemeral and changes on redeploy), and cloud cost monitoring. No further required work remains.
 
 ## Verified decisions
 
@@ -179,8 +178,6 @@ Evaluate and approve a low-cost managed AWS runtime for the immutable image. EKS
 - `shipping_limit_date` is the seller's logistics handoff deadline, but its availability at the exact prediction moment is not verified and its observed values contain anomalies. It is excluded from Gold-v1.
 
 ## Results not yet available
-
-- Managed cloud application runtime/deployment status
 - Cloud cost
 
 ## Verified AWS Glue Silver milestone
@@ -243,6 +240,10 @@ Evaluate and approve a low-cost managed AWS runtime for the immutable image. EKS
 - The metadata-only manifest is `manifests/model/delay-risk/v2/release-001.json`; it contains no credentials, secrets, model contents, raw rows, processed data, or absolute local paths. No training commit or training timestamp is claimed.
 - The manifest was uploaded once, without overwriting an existing key, to `s3://delivery-delay-model-artifacts-ap-southeast-1-20260908-7f3c9a2d/manifests/model/delay-risk/v2/release-001.json`. The exact current version is 2,694 bytes with SHA-256 hex `1a7829f872235bc66eedcae91b4a0fa7659888978dcc1a558a7dca4375e8a9d2`, S3 checksum `Gngp+HIjW8Zu7crpG0oPp2WYiJeNzBpVin3KQ3XoqdI=`, version `Y5p13E7lXe2GGSdnecDG2IglWTkb94z2`, ETag `"6bfdc354b1b9cdc4685859b3d6632da4"`, AES256 encryption, and `application/json` content type. A read-only download of that exact version matched the local manifest byte-for-byte and by SHA-256; the temporary copy was removed. The model bucket now contains exactly three current versions—two runtime artifacts and one manifest—with zero delete markers. The release manifest remains unchanged and contains no self-referential object checksum or version section.
 - The CI/ECR security milestone is verified: least-privilege GitHub Actions OIDC retrieves exact-version model artifacts with SHA-256 verification, builds the image, applies the fail-closed scan policy, and publishes the immutable image to private ECR. CI must not retrain automatically; application deployment is not implemented.
+
+## Verified live deployment milestone
+
+The immutable image (`sha-4d22e0a9a00ebfc722e4c3c00d7a571316ef788d`) is deployed on AWS ECS Fargate: cluster `delivery-delay-cluster`, service `delivery-delay-svc`, task family `delivery-delay-task`, in the default VPC in `ap-southeast-1`, security group open on port 8000. On 2026-09-11, `curl` against the running task's public IP returned a correct `/health` response and a correct `/predict` response with a real model inference. The public IP is ephemeral and changes on every redeploy since no load balancer or Elastic IP is configured. Run `aws ecs update-service --cluster delivery-delay-cluster --service delivery-delay-svc --desired-count 0 --region ap-southeast-1` to stop billing without deleting the service.
 
 ## Session handoff prompt
 
@@ -403,5 +404,4 @@ Git state is intentionally not stored as a lasting fact here because it changes 
 - `shipping_limit_date` has a documented seller-deadline meaning, but its exact prediction-time availability is not verified and its observed values contain anomalies. It is excluded from Gold-v1.
 
 ### Next exact action
-
-Evaluate and approve a low-cost managed AWS runtime for the immutable image. EKS remains unjustified for this MVP; no automatic per-batch model retraining is planned.
+The MVP is deployed and verified end to end on ECS Fargate (cluster `delivery-delay-cluster`, service `delivery-delay-svc`); `/health` and `/predict` both returned correct responses from the live task on 2026-09-11. Optional follow-ups: a stable DNS/load balancer in front of the task (the current public IP is ephemeral and changes on redeploy), and cloud cost monitoring. No further required work remains.

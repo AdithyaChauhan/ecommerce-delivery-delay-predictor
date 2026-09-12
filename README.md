@@ -123,6 +123,10 @@ Commit `4d22e0a` added the fail-closed ECR vulnerability policy, and GitHub Acti
 
 The `linux/amd64` scan reported 6 CRITICAL, 11 HIGH, 3 MEDIUM, and 1 LOW findings. The 17 CRITICAL/HIGH findings are reviewed temporary exceptions matched by exact CVE, severity, package, and installed version, with review/expiry on 2026-10-11; vulnerabilities were not removed and the image does not have zero vulnerabilities. CI verifies the pinned Dockerfile base and fails on unexpected, mismatched, expired, duplicate, malformed, or stale CRITICAL/HIGH entries. It publishes to private immutable ECR through GitHub OIDC. The validator, allowlist, independent fixture, and policy tests are `scripts/validate_ecr_scan.py`, `security/ecr-scan-allowlist.json`, `tests/fixtures/ecr-scan-f33c05a-high-critical.json`, and `tests/test_ecr_scan_policy.py`. No cloud application runtime is deployed yet.
 
+## Verified live deployment
+
+The immutable image is deployed on AWS ECS Fargate (cluster `delivery-delay-cluster`, service `delivery-delay-svc`, task family `delivery-delay-task`). On 2026-09-11, `/health` and `/predict` both returned correct responses from the running task's public IP. The IP is ephemeral and changes on redeploy; no load balancer or Elastic IP is set up yet.
+
 ## Repository guide
 
 - `AGENTS.md`: permanent working rules for Codex.
